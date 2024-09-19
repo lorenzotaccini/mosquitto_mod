@@ -194,7 +194,6 @@ int mosquitto_broker_publish(
 	msg->properties = properties;
 
 	DL_APPEND(db.plugin_msgs, msg);
-
 	return MOSQ_ERR_SUCCESS;
 }
 

@@ -52,7 +52,6 @@ static int callback_message(int event, void *event_data, void *userdata)
 
 	UNUSED(event);
 	UNUSED(userdata);
-
 	/* This simply adds "hello " to the front of every payload. You can of
 	 * course do much more complicated message processing if needed. */
 
@@ -76,6 +75,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 	 * broker. */
 	ed->payload = new_payload;
 	ed->payloadlen = new_payloadlen;
+
 
 	return MOSQ_ERR_SUCCESS;
 }
