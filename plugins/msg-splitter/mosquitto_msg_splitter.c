@@ -1,37 +1,3 @@
-/*
-Copyright (c) 2020 Roger Light <roger@atchoo.org>
-
-All rights reserved. This program and the accompanying materials
-are made available under the terms of the Eclipse Public License 2.0
-and Eclipse Distribution License v1.0 which accompany this distribution.
-
-The Eclipse Public License is available at
-   https://www.eclipse.org/legal/epl-2.0/
-and the Eclipse Distribution License is available at
-  http://www.eclipse.org/org/documents/edl-v10.php.
-
-SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
-
-Contributors:
-   Roger Light - initial implementation and documentation.
-*/
-
-/*
- * This is an *example* plugin which demonstrates how to modify the payload of
- * a message after it is received by the broker and before it is sent on to
- * other clients.
- *
- * You should be very sure of what you are doing before making use of this feature.
- *
- * Compile with:
- *   gcc -I<path to mosquitto-repo/include> -fPIC -shared mosquitto_payload_modification.c -o mosquitto_payload_modification.so
- *
- * Use in config with:
- *
- *   plugin /path/to/mosquitto_payload_modification.so
- *
- * Note that this only works on Mosquitto 2.0 or later.
- */
 #include <stdio.h>
 #include <string.h>
 
@@ -52,6 +18,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 
 	UNUSED(event);
 	UNUSED(userdata);
+    
 	/* This simply adds "hello " to the front of every payload. You can of
 	 * course do much more complicated message processing if needed. */
 
@@ -75,7 +42,8 @@ static int callback_message(int event, void *event_data, void *userdata)
 	 * broker. */
 	ed->payload = new_payload;
 	ed->payloadlen = new_payloadlen;
-
+    
+    mosquitto_broker_publish_copy(NULL,ed->topic,(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 
 	return MOSQ_ERR_SUCCESS;
 }

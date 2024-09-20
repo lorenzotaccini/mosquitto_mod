@@ -2,7 +2,7 @@ include ../../config.mk
 
 .PHONY : all binary check clean reallyclean test install uninstall
 
-PLUGIN_NAME=msg_splitter
+PLUGIN_NAME=mosquitto_msg_splitter
 
 all : binary
 
