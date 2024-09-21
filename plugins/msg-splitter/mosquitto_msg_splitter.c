@@ -44,7 +44,6 @@ static int callback_message(int event, void *event_data, void *userdata)
 	ed->payloadlen = new_payloadlen;
     
     mosquitto_broker_publish_copy(NULL,ed->topic,(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
-	printf("ciao");
 	return MOSQ_ERR_SUCCESS;
 }
 
