@@ -16,6 +16,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 	char *new_payload;
 	uint32_t new_payloadlen;
 
+
 	UNUSED(event);
 	UNUSED(userdata);
     
@@ -42,8 +43,21 @@ static int callback_message(int event, void *event_data, void *userdata)
 	 * broker. */
 	ed->payload = new_payload;
 	ed->payloadlen = new_payloadlen;
+	
+	//TRYING TO CHANGE DESTINATION TOPIC
+	uint32_t new_topiclen = (uint32_t)strlen(ed->topic) + (uint32_t)strlen("test")+1;
+	char *new_topic = mosquitto_calloc(1, new_topiclen);
+	if(new_topic == NULL){
+		return MOSQ_ERR_NOMEM;
+	}
+	snprintf(new_topic,new_topiclen, "test");
+	memcpy(new_topic+(uint32_t)strlen("test"), ed->topic, (uint32_t)strlen(ed->topic));
+
+	ed->topic=new_topic;
+	
+    //C++ FUNCTION PROCESSING THE MESSAGES 
     
-    mosquitto_broker_publish_copy(NULL,ed->topic,(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
+    mosquitto_broker_publish_copy(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 	return MOSQ_ERR_SUCCESS;
 }
 
@@ -67,6 +81,9 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 	UNUSED(opt_count);
 
 	mosq_pid = identifier;
+
+	//WILL LOAD YAML DOCUMENTS? IN GLOBAL STRUCT?
+
 	return mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE, callback_message, NULL, NULL);
 }
 

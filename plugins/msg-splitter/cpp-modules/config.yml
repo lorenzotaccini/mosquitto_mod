@@ -1,0 +1,29 @@
+---
+ broker: localhost
+ port: 1883
+ inTopic: i/1
+ function:
+   - extractcols
+ outTopic:
+   - o/1
+   - o/2
+   - o/3
+
+ retain: False
+ parameters:
+   - name
+   - city
+   - age
+ inFormat: json
+ outFormat: xml
+---
+ broker: localhost
+ port: 1883
+ inTopic: i/2
+ function:
+  - splittable
+ outTopic: output/topic
+ retain: True
+ parameters: ciao
+ inFormat: json
+ outFormat: json
