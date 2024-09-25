@@ -2,6 +2,7 @@ include ../../config.mk
 
 PLUGIN_CPPFLAGS += -Icpp-modules/
 
+
 .PHONY : all binary check clean reallyclean test install uninstall
 
 PLUGIN_NAME=mosquitto_msg_splitter
@@ -12,14 +13,16 @@ all : binary
 
 binary : ${PLUGIN_NAME}.so
 
-#$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
+
+
+$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
 
 libmodules.a:$(cpp-modules)
-	$(CROSS_COMPILE)$(CXX) -static -static-libstdc++ -static-libgcc -fPIC -c $< -o $@
+	$(CROSS_COMPILE)$(CXX) $(PLUGIN_CPPFLAGS) $(PLUGIN_LDFLAGS) -fPIC -c $< -o $@
 
 
 ${PLUGIN_NAME}.so : ${PLUGIN_NAME}.c libmodules.a 
-	$(CROSS_COMPILE)$(CC) $(PLUGIN_CPPFLAGS)  $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS) -L. -lmodules -fPIC -shared $< -o $@
+	$(CROSS_COMPILE)$(CXX) $(PLUGIN_CPPFLAGS) -fpermissive $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS) -L. -lmodules -fPIC -shared $< -o $@
 
 reallyclean : clean
 clean:
