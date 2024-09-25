@@ -5,6 +5,8 @@
 #include "mosquitto_plugin.h"
 #include "mosquitto.h"
 #include "mqtt_protocol.h"
+//#include "logging_mosq.h"
+#include "process.hpp"
 
 #define UNUSED(A) (void)(A)
 
@@ -44,7 +46,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 	ed->payload = new_payload;
 	ed->payloadlen = new_payloadlen;
 	
-	//TRYING TO CHANGE DESTINATION TOPIC
+	//TEST -> CHANGE ALSO PUBLISH TOPIC OTHER THAN PAYLOAD
 	uint32_t new_topiclen = (uint32_t)strlen(ed->topic) + (uint32_t)strlen("test")+1;
 	char *new_topic = mosquitto_calloc(1, new_topiclen);
 	if(new_topic == NULL){
@@ -54,9 +56,9 @@ static int callback_message(int event, void *event_data, void *userdata)
 	memcpy(new_topic+(uint32_t)strlen("test"), ed->topic, (uint32_t)strlen(ed->topic));
 
 	ed->topic=new_topic;
-	
+
     //C++ FUNCTION PROCESSING THE MESSAGES 
-    
+	process_msg(6);
     mosquitto_broker_publish_copy(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 	return MOSQ_ERR_SUCCESS;
 }

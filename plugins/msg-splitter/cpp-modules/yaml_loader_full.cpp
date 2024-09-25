@@ -31,8 +31,9 @@
 #include <stdexcept>
 #include <sstream>
 #include <cstdlib>
+#include <logging_mosq.h>
+#include <mosquitto.h>
 
-// Logger di esempio, puoi sostituirlo con una libreria come spdlog
 #define LOG_INFO(msg) std::cout << "[INFO] " << msg << std::endl;
 #define LOG_WARNING(msg) std::cerr << "[WARNING] " << msg << std::endl;
 #define LOG_CRITICAL(msg) std::cerr << "[CRITICAL] " << msg << std::endl;
@@ -50,8 +51,7 @@ public:
             if (!file.is_open()) {
                 throw std::runtime_error("Config file not found");
             }
-
-            LOG_INFO("Loading configuration file: " + configfile_name);
+            //log__printf(NULL, MOSQ_LOG_INFO, "Loading configuration file: %s", configfile_name);
             std::vector<YAML::Node> docs = YAML::LoadAll(file);
 
             for (size_t i = 0; i < docs.size(); ++i) {
