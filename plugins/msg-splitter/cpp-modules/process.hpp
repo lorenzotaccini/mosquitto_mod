@@ -2,9 +2,12 @@
     #define FRED_H 
 
     #ifdef __cplusplus
-    extern "C" 
+    extern "C" {
     #endif
     void process_msg(int);
-
+    int test(int);
+    #ifdef __cplusplus
+    }
+    #endif
 
 #endif

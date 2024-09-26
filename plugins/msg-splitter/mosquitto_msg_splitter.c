@@ -5,7 +5,7 @@
 #include "mosquitto_plugin.h"
 #include "mosquitto.h"
 #include "mqtt_protocol.h"
-//#include "logging_mosq.h"
+#include "lib/logging_mosq.h"
 #include "process.hpp"
 
 #define UNUSED(A) (void)(A)
@@ -14,7 +14,7 @@ static mosquitto_plugin_id_t *mosq_pid = NULL;
 
 static int callback_message(int event, void *event_data, void *userdata)
 {
-	struct mosquitto_evt_message *ed = event_data;
+	struct mosquitto_evt_message *ed = (struct mosquitto_evt_message*)event_data;
 	char *new_payload;
 	uint32_t new_payloadlen;
 
@@ -31,7 +31,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 	/* Allocate some memory - use
 	 * mosquitto_calloc/mosquitto_malloc/mosquitto_strdup when allocating, to
 	 * allow the broker to track memory usage */
-	new_payload = mosquitto_calloc(1, new_payloadlen);
+	new_payload = (char*)mosquitto_calloc(1, new_payloadlen);
 	if(new_payload == NULL){
 		return MOSQ_ERR_NOMEM;
 	}
@@ -48,7 +48,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 	
 	//TEST -> CHANGE ALSO PUBLISH TOPIC OTHER THAN PAYLOAD
 	uint32_t new_topiclen = (uint32_t)strlen(ed->topic) + (uint32_t)strlen("test")+1;
-	char *new_topic = mosquitto_calloc(1, new_topiclen);
+	char *new_topic = (char*)mosquitto_calloc(1, new_topiclen);
 	if(new_topic == NULL){
 		return MOSQ_ERR_NOMEM;
 	}
@@ -59,6 +59,7 @@ static int callback_message(int event, void *event_data, void *userdata)
 
     //C++ FUNCTION PROCESSING THE MESSAGES 
 	process_msg(6);
+	test(6);
     mosquitto_broker_publish_copy(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 	return MOSQ_ERR_SUCCESS;
 }

@@ -14,7 +14,7 @@ cmake_print_variables(mosquitto_SOURCE_DIR)
 
 add_library(mosquitto_msg_splitter MODULE mosquitto_msg_splitter.c)
 
-add_library(cpp_modules ${CPP_MODULES_DIR}/process.cpp ${CPP_MODULES_DIR}/process.cpp)
+add_library(cpp_modules ${CPP_MODULES_DIR}/process.cpp ${CPP_MODULES_DIR}/yaml_loader_full.cpp)
 target_compile_options(cpp_modules PUBLIC -fPIC)
 target_link_libraries(mosquitto_msg_splitter cpp_modules)
 
@@ -26,5 +26,6 @@ if(WIN32)
 	target_link_libraries(mosquitto_msg_splitter mosquitto cpp_modules)
 endif(WIN32)
 
-# Don't install, these are example plugins only.
-#install(TARGETS mosquitto_msg_splitter RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+set(CMAKE_INSTALL_PREFIX ".")
+
+install(TARGETS mosquitto_msg_splitter RUNTIME DESTINATION .. LIBRARY DESTINATION ..)
