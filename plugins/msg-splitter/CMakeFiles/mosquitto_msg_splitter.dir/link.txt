@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC -shared  -o mosquitto_msg_splitter.so CMakeFiles/mosquitto_msg_splitter.dir/mosquitto_msg_splitter.o 

@@ -1,0 +1,3 @@
+/home/lorenzo/mosquitto_mod/plugins/msg-splitter/CMakeFiles/mosquitto_msg_splitter.dir
+/home/lorenzo/mosquitto_mod/plugins/msg-splitter/CMakeFiles/edit_cache.dir
+/home/lorenzo/mosquitto_mod/plugins/msg-splitter/CMakeFiles/rebuild_cache.dir
