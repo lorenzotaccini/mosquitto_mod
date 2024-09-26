@@ -1,3 +1,5 @@
+#include <lib/logging_mosq.h>
+
 #ifndef FRED_H
     #define FRED_H 
 
@@ -5,7 +7,7 @@
     extern "C" {
     #endif
     void process_msg(int);
-    int test(int);
+    void load_yaml(void);
     #ifdef __cplusplus
     }
     #endif

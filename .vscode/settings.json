@@ -2,7 +2,8 @@
     "C_Cpp.default.compilerPath": "/usr/bin/g++",
     "files.associations": {
         "mosquitto_plugin.h": "c",
-        "logging_mosq.h": "c"
+        "logging_mosq.h": "c",
+        "optional": "cpp"
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
 }

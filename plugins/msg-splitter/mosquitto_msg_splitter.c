@@ -59,7 +59,6 @@ static int callback_message(int event, void *event_data, void *userdata)
 
     //C++ FUNCTION PROCESSING THE MESSAGES 
 	process_msg(6);
-	test(6);
     mosquitto_broker_publish_copy(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 	return MOSQ_ERR_SUCCESS;
 }
@@ -86,6 +85,7 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 	mosq_pid = identifier;
 
 	//WILL LOAD YAML DOCUMENTS? IN GLOBAL STRUCT?
+	//TODO load_yaml(); -> broken compatibility between C and C++ class, solve
 
 	return mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE, callback_message, NULL, NULL);
 }
