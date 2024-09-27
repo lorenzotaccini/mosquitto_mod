@@ -11,7 +11,8 @@ extern "C" {
 typedef struct MyClass MyClass;
 
 MyClass* MyClass_new();
-void MyClass_doSomething(MyClass* instance);
+void MyClass_publish(MyClass* instance,const char *,const char *, int, void* , int ,bool , mosquitto_property *);
+void MyClass_load_yaml(MyClass* instance);
 void MyClass_delete(MyClass* instance);
 
 #ifdef __cplusplus

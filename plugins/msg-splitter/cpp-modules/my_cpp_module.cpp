@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <yaml-cpp/yaml.h>
+#include "mosquitto_broker.h"
 //#include <backup/yaml_loader_full.cpp>
 
 
@@ -100,30 +101,35 @@ private:
 };
 
 
-void load_yaml(){
-    YamlLoader loader("config.yml");
-    auto documents = loader.load();
 
-    for (const auto& doc : documents) {
-        std::cout << "Loaded document: " << doc << std::endl;
-    }
-}
 
 class MyClass {
 public:
     
-    void doSomething() {
+    void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
         std::cout<<"prova"<<std::endl;
 
-        load_yaml();
+        mosquitto_broker_publish_copy(clientid,topic,payload_len,payload,qos,retain,properties);
 
         std::cout<<"fine"<<std::endl;
+    }
+
+    void load_yaml(){
+        YamlLoader loader("config.yml");
+        auto documents = loader.load();
+
+        for (const auto& doc : documents) {
+            std::cout << "Loaded document: " << doc << std::endl;
+        }
     }
     
 };
 
 extern "C" {
     MyClass* MyClass_new() { return new MyClass(); }
-    void MyClass_doSomething(MyClass* instance) { instance->doSomething(); }
+    void MyClass_publish(MyClass* instance, const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) { 
+        instance->publish(clientid,topic,payload_len,payload,qos,retain,properties); 
+    }
+    void MyClass_load_yaml(MyClass* instance){ instance->load_yaml(); };
     void MyClass_delete(MyClass* instance) { delete instance; }
 }
