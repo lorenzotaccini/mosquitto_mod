@@ -1,17 +1,17 @@
 #include <iostream>
 #include <fstream>
 #include <regex>
-#include <yaml-cpp/yaml.h>
 #include <string>
 #include <vector>
 #include <stdexcept>
 #include <sstream>
 #include <cstdlib>
+#include <yaml-cpp/yaml.h>
 
 //#include <mosquitto.h>
 
 
-#include <process.hpp>
+#include "process.hpp"
 
 class YamlLoader {
 public:
@@ -111,11 +111,3 @@ int main() {
 
 
 
-void load_yaml(){
-    YamlLoader loader("config.yml");
-    auto documents = loader.load();
-
-    for (const auto& doc : documents) {
-        std::cout << "Loaded document: " << doc << std::endl;
-    }
-}

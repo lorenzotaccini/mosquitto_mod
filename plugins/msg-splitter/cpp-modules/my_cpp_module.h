@@ -1,5 +1,8 @@
 // my_cpp_module.h
 
+#pragma once
+#include "mosquitto.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

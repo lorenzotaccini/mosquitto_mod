@@ -1,7 +1,7 @@
 include ../../config.mk
 
 PLUGIN_CPPFLAGS += -Icpp-modules/
-
+PLUGIN_CPPFLAGS += -Ilib/yaml-cpp
 
 .PHONY : all binary check clean reallyclean test install uninstall
 
@@ -15,7 +15,7 @@ binary : ${PLUGIN_NAME}.so
 
 
 
-$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
+#$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
 
 %.o : %.cpp
 	$(CROSS_COMPILE)$(CXX) $(PLUGIN_CPPFLAGS) $(PLUGIN_LDFLAGS) -fPIC -c $< -o $@
@@ -28,7 +28,7 @@ libmodules.a: $(cpp-modules:.cpp=.o)
 	ar rcs $@ $^
 
 ${PLUGIN_NAME}.so : ${PLUGIN_NAME}.c libmodules.a 
-	$(CROSS_COMPILE)$(CXX) $< $(PLUGIN_CPPFLAGS) $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS)  -fPIC -shared libmodules.a -lstdc++ -o $@
+	$(CROSS_COMPILE)$(CXX) $< $(PLUGIN_CPPFLAGS) $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS) -fPIC -shared libmodules.a -L/usr/lib/x86_64-linux-gnu -lyaml-cpp -lstdc++ -o $@
 
 reallyclean : clean
 clean:
