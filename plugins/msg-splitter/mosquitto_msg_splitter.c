@@ -6,7 +6,9 @@
 #include "mosquitto.h"
 #include "mqtt_protocol.h"
 #include "lib/logging_mosq.h"
-#include "process.hpp"
+//#include "process.hpp"
+
+#include "my_cpp_module.h"
 
 #define UNUSED(A) (void)(A)
 
@@ -57,8 +59,13 @@ static int callback_message(int event, void *event_data, void *userdata)
 
 	ed->topic=new_topic;
 
+	MyClass* obj = MyClass_new();
+    MyClass_doSomething(obj);
+    MyClass_delete(obj);
+
+
     //C++ FUNCTION PROCESSING THE MESSAGES 
-	process_msg(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
+	//process_msg(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 
 	return MOSQ_ERR_SUCCESS;
 }

@@ -7,15 +7,15 @@ PLUGIN_CPPFLAGS += -Icpp-modules/
 
 PLUGIN_NAME=mosquitto_msg_splitter
 
-cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
-
+#cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
+cpp-modules= cpp-modules/my_cpp_module.cpp
 all : binary
 
 binary : ${PLUGIN_NAME}.so
 
 
 
-#$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
+$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
 
 %.o : %.cpp
 	$(CROSS_COMPILE)$(CXX) $(PLUGIN_CPPFLAGS) $(PLUGIN_LDFLAGS) -fPIC -c $< -o $@
