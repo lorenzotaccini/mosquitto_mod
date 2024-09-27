@@ -25,23 +25,23 @@ public:
             if (!file.is_open()) {
                 throw std::runtime_error("Config file not found");
             }
-            log__printf(NULL, MOSQ_LOG_INFO, "Loading configuration file: %s", configfile_name.c_str());
+            std::cout<< "Loading configuration file: "<<configfile_name.c_str();
             std::vector<YAML::Node> docs = YAML::LoadAll(file);
 
             for (size_t i = 0; i < docs.size(); ++i) {
                 YAML::Node doc = docs[i];
                 if (check_structure(doc)) {
-                    log__printf(NULL, MOSQ_LOG_INFO, "Successfully loaded document %s", std::to_string(i).c_str());
+                    std::cout<<"Successfully loaded document "<<std::to_string(i).c_str();
                     valid_docs.push_back(doc);
                 } else {
-                    log__printf(NULL, MOSQ_LOG_WARNING,"Document %s not loaded", std::to_string(i).c_str());
+                    std::cout<<"Document not loaded: "<<std::to_string(i).c_str();
                 }
             }
         } catch (const std::runtime_error& e) {
-            log__printf(NULL, MOSQ_LOG_ERR, std::string(e.what()).c_str());
+            std::cout<<std::string(e.what()).c_str();
             std::exit(-1);
         } catch (const YAML::ParserException& e) {
-            log__printf(NULL, MOSQ_LOG_WARNING,"Error in YAML file: %s", std::string(e.what()).c_str());
+            std::cout<<"Error in YAML file: "<<std::string(e.what()).c_str();
             return {};
         }
 
@@ -53,7 +53,6 @@ private:
 
     bool check_structure(const YAML::Node& yaml_content) {
         std::map<std::string, std::regex> required_fields = {
-            {"broker", std::regex(R"(^(((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4})$|^localhost$)")},
             {"port", std::regex(R"(^(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$)")},
             {"inTopic", std::regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"outTopic", std::regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
@@ -65,7 +64,7 @@ private:
         };
 
         std::vector<std::string> wrong_fields;
-        log__printf(NULL, MOSQ_LOG_DEBUG, "Spell checking...");
+        std::cout<<"Spell checking...";
 
         for (const auto& [field, pattern] : required_fields) {
             if (!yaml_content[field]) {
@@ -87,14 +86,14 @@ private:
         }
 
         if (!wrong_fields.empty()) {
-            log__printf(NULL, MOSQ_LOG_WARNING, "The following fields are wrong or missing: ");
+            std::cout<<"The following fields are wrong or missing: ";
             for (const auto& field : wrong_fields) {
                 std::cout<<(" - " + field)<<std::endl;
             }
             return false;
         }
 
-        log__printf(NULL, MOSQ_LOG_DEBUG, "Configuration file is valid");
+        std::cout<<"Configuration file is valid"<<std::endl;
         return true;
     }
 };

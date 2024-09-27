@@ -7,7 +7,7 @@ PLUGIN_CPPFLAGS += -Icpp-modules/
 
 PLUGIN_NAME=mosquitto_msg_splitter
 
-cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp
+cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
 
 all : binary
 
@@ -28,7 +28,7 @@ libmodules.a: $(cpp-modules:.cpp=.o)
 	ar rcs $@ $^
 
 ${PLUGIN_NAME}.so : ${PLUGIN_NAME}.c libmodules.a 
-	$(CROSS_COMPILE)$(CXX) $< $(PLUGIN_CPPFLAGS) $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS)  -fPIC -shared libmodules.a -o $@
+	$(CROSS_COMPILE)$(CXX) $< $(PLUGIN_CPPFLAGS) $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS)  -fPIC -shared libmodules.a -lstdc++ -o $@
 
 reallyclean : clean
 clean:

@@ -58,8 +58,8 @@ static int callback_message(int event, void *event_data, void *userdata)
 	ed->topic=new_topic;
 
     //C++ FUNCTION PROCESSING THE MESSAGES 
-	process_msg(6);
-    mosquitto_broker_publish_copy(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
+	process_msg(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
+
 	return MOSQ_ERR_SUCCESS;
 }
 
