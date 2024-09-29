@@ -8,12 +8,14 @@ extern "C" {
 #endif
 
 // Dichiarazioni delle funzioni wrapper per C
-typedef struct MyClass MyClass;
+typedef struct Wrapper Wrapper;
 
-MyClass* MyClass_new();
-void MyClass_publish(MyClass* instance,const char *,const char *, int, void* , int ,bool , mosquitto_property *);
-void MyClass_load_yaml(MyClass* instance);
-void MyClass_delete(MyClass* instance);
+typedef struct YamlContent;
+
+Wrapper* Wrapper_new();
+void Wrapper_publish(Wrapper* instance,const char *,const char *, int, void* , int ,bool , mosquitto_property *);
+void Wrapper_load_yaml(Wrapper* instance);
+void Wrapper_delete(Wrapper* instance);
 
 #ifdef __cplusplus
 }

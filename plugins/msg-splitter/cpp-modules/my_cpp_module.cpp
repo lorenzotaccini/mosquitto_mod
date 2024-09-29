@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <yaml-cpp/yaml.h>
 #include "mosquitto_broker.h"
-//#include <backup/yaml_loader_full.cpp>
 
 
 
@@ -102,8 +101,7 @@ private:
 
 
 
-
-class MyClass {
+class Wrapper {
 public:
     
     void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
@@ -126,10 +124,10 @@ public:
 };
 
 extern "C" {
-    MyClass* MyClass_new() { return new MyClass(); }
-    void MyClass_publish(MyClass* instance, const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) { 
+    Wrapper* wrapper_new() { return new Wrapper(); }
+    void wrapper_publish(Wrapper* instance, const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) { 
         instance->publish(clientid,topic,payload_len,payload,qos,retain,properties); 
     }
-    void MyClass_load_yaml(MyClass* instance){ instance->load_yaml(); };
-    void MyClass_delete(MyClass* instance) { delete instance; }
+    void wrapper_load_yaml(Wrapper* instance){ instance->load_yaml(); };
+    void wrapper_delete(Wrapper* instance) { delete instance; }
 }

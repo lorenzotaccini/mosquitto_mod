@@ -32,7 +32,7 @@ ${PLUGIN_NAME}.so : ${PLUGIN_NAME}.c libmodules.a
 
 reallyclean : clean
 clean:
-	-rm -f *.o ${PLUGIN_NAME}.so *.gcda *.gcno libmodules.a
+	-rm -f cpp-modules/*.o *.o ${PLUGIN_NAME}.so *.gcda *.gcno libmodules.a
 
 check: test
 test:

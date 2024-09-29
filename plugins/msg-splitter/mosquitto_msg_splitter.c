@@ -14,6 +14,7 @@
 
 static mosquitto_plugin_id_t *mosq_pid = NULL;
 
+
 static int callback_message(int event, void *event_data, void *userdata)
 {
 	struct mosquitto_evt_message *ed = (struct mosquitto_evt_message*)event_data;
