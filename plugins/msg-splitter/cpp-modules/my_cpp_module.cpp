@@ -9,9 +9,10 @@
 #include <stdexcept>
 #include <sstream>
 #include <cstdlib>
+#include <string.h>
 #include <yaml-cpp/yaml.h>
 #include "mosquitto_broker.h"
-
+#include "my_cpp_module.h"
 
 
 class YamlLoader {
@@ -54,7 +55,6 @@ private:
 
     bool check_structure(const YAML::Node& yaml_content) {
         std::map<std::string, std::regex> required_fields = {
-            {"port", std::regex(R"(^(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$)")},
             {"inTopic", std::regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"outTopic", std::regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"retain", std::regex(R"(^(true|false)$)", std::regex_constants::icase)},
@@ -99,6 +99,14 @@ private:
     }
 };
 
+FORMAT string_to_format(const std::string &format_str) {
+    if (format_str == "json") return JSON;
+    if (format_str == "xml") return XML;
+    if (format_str == "yaml") return YML;
+    if (format_str == "csv") return CSV;
+    throw std::runtime_error("Formato non riconosciuto: " + format_str);
+}
+
 
 
 class Wrapper {
@@ -112,14 +120,60 @@ public:
         std::cout<<"fine"<<std::endl;
     }
 
-    void load_yaml(){
-        YamlLoader loader("config.yml");
-        auto documents = loader.load();
+    int load_yaml(const char *filename, YamlDocument **documents){
+        
+        YamlLoader loader(filename);
+        std::vector<YAML::Node> yaml_docs = loader.load();
 
-        for (const auto& doc : documents) {
-            std::cout << "Loaded document: " << doc << std::endl;
+        for(auto &e: yaml_docs){
+            std::cout<<e<<std::endl;
         }
+
+        *documents = (YamlDocument*)malloc(yaml_docs.size() * sizeof(YamlDocument));
+        if (*documents == NULL) {
+            return -1;
+        }
+
+        std::cout<<"fine"<<std::endl;
+
+        for (size_t i = 0; i < yaml_docs.size(); ++i) {
+            YAML::Node doc = yaml_docs[i];
+
+            // Carica in_topic e out_topic
+            strncpy((*documents)[i].in_topic, doc["inTopic"].as<std::string>().c_str(), sizeof((*documents)[i].in_topic) - 1);
+            (*documents)[i].in_topic[sizeof((*documents)[i].in_topic) - 1] = '\0'; // Assicura che sia null-terminato
+
+            strncpy((*documents)[i].out_topic, doc["outTopic"].as<std::string>().c_str(), sizeof((*documents)[i].out_topic) - 1);
+            (*documents)[i].out_topic[sizeof((*documents)[i].out_topic) - 1] = '\0'; // Assicura che sia null-terminato
+
+
+            // Retain
+            (*documents)[i].retain = doc["retain"].as<bool>();
+
+            // Funzioni (array dinamico di stringhe)
+            (*documents)[i].num_functions = doc["function"].size();
+            (*documents)[i].functions = (char**)malloc((*documents)[i].num_functions * sizeof(char*));
+            for (int j = 0; j < (*documents)[i].num_functions; ++j) {
+                (*documents)[i].functions[j] = strdup(doc["function"][j].as<std::string>().c_str());
+            }
+
+            // Parametri (array dinamico di stringhe)
+            (*documents)[i].num_parameters = doc["parameters"].size();
+            (*documents)[i].parameters = (char**)malloc((*documents)[i].num_parameters * sizeof(char*));
+            for (int j = 0; j < (*documents)[i].num_parameters; ++j) {
+                (*documents)[i].parameters[j] = strdup(doc["parameters"][j].as<std::string>().c_str());
+            }
+
+            // Formati di input e output
+            (*documents)[i].in_format = string_to_format(doc["inFormat"].as<std::string>());
+            (*documents)[i].out_format = string_to_format(doc["outFormat"].as<std::string>());
+        }
+
+        // Restituisce il numero di documenti caricati
+        return yaml_docs.size();
     }
+
+
     
 };
 
@@ -128,6 +182,9 @@ extern "C" {
     void wrapper_publish(Wrapper* instance, const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) { 
         instance->publish(clientid,topic,payload_len,payload,qos,retain,properties); 
     }
-    void wrapper_load_yaml(Wrapper* instance){ instance->load_yaml(); };
+    int wrapper_load_yaml(Wrapper* instance, const char *filename, YamlDocument **documents){ 
+        return instance->load_yaml(filename, documents); 
+    }
+    void wrapper_free_docs_mem(YamlDocument *docs, int n_docs){int I;};
     void wrapper_delete(Wrapper* instance) { delete instance; }
 }

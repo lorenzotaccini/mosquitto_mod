@@ -53,7 +53,6 @@ private:
 
     bool check_structure(const YAML::Node& yaml_content) {
         std::map<std::string, std::regex> required_fields = {
-            {"port", std::regex(R"(^(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$)")},
             {"inTopic", std::regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"outTopic", std::regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"retain", std::regex(R"(^(true|false)$)", std::regex_constants::icase)},
@@ -69,16 +68,15 @@ private:
         for (const auto& [field, pattern] : required_fields) {
             if (!yaml_content[field]) {
                 wrong_fields.push_back(field);
-                continue;
             }
-
-            if (yaml_content[field].IsSequence()) {
+            else if (yaml_content[field].IsSequence()) {
                 for (auto v : yaml_content[field]) {
                     if (!std::regex_match(v.as<std::string>(), pattern)) {
                         wrong_fields.push_back(field);
                     }
                 }
-            } else {
+            } 
+            else {
                 if (!std::regex_match(yaml_content[field].as<std::string>(), pattern)) {
                     wrong_fields.push_back(field);
                 }

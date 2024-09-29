@@ -10,12 +10,28 @@ extern "C" {
 // Dichiarazioni delle funzioni wrapper per C
 typedef struct Wrapper Wrapper;
 
-typedef struct YamlContent;
+typedef enum {XML,JSON,CSV,YML} FORMAT;
 
-Wrapper* Wrapper_new();
-void Wrapper_publish(Wrapper* instance,const char *,const char *, int, void* , int ,bool , mosquitto_property *);
-void Wrapper_load_yaml(Wrapper* instance);
-void Wrapper_delete(Wrapper* instance);
+typedef struct
+{
+    char in_topic[256];
+    char out_topic[256];
+    bool retain;
+    char **functions;
+    int num_functions;
+    char **parameters;
+    int num_parameters;
+    FORMAT in_format;
+    FORMAT out_format;
+
+} YamlDocument;
+
+
+Wrapper* wrapper_new();
+void wrapper_publish(Wrapper* instance,const char *,const char *, int, void* , int ,bool , mosquitto_property *);
+int wrapper_load_yaml(Wrapper* instance, const char *filename, YamlDocument **yaml_docs);
+void wrapper_free_docs_mem(YamlDocument *docs, int n_docs);
+void wrapper_delete(Wrapper* instance);
 
 #ifdef __cplusplus
 }

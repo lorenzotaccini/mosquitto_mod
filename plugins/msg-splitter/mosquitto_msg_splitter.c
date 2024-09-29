@@ -14,6 +14,8 @@
 
 static mosquitto_plugin_id_t *mosq_pid = NULL;
 
+YamlDocument *documents = NULL;
+int num_documents = 0;
 
 static int callback_message(int event, void *event_data, void *userdata)
 {
@@ -60,9 +62,9 @@ static int callback_message(int event, void *event_data, void *userdata)
 
 	ed->topic=new_topic;
 
-	MyClass* obj = MyClass_new();
-    MyClass_publish(obj,NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
-    MyClass_delete(obj);
+	Wrapper* obj = wrapper_new();
+    wrapper_publish(obj,NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
+    wrapper_delete(obj);
 
 
     //C++ FUNCTION PROCESSING THE MESSAGES 
@@ -94,9 +96,8 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 
 	//WILL LOAD YAML DOCUMENTS? IN GLOBAL STRUCT?
 	//TODO load_yaml(); -> broken compatibility between C and C++ class, solve
-	MyClass* obj = MyClass_new();
-    MyClass_load_yaml(obj);
-    MyClass_delete(obj);
+	Wrapper* obj = wrapper_new();
+	num_documents= wrapper_load_yaml(obj,"config.yml", &documents);
 	return mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE, callback_message, NULL, NULL);
 }
 
