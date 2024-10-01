@@ -14,8 +14,10 @@ typedef enum {XML,JSON,CSV,YML} FORMAT;
 
 typedef struct
 {
-    char in_topic[256];
-    char out_topic[256];
+    char **in_topic;
+    int num_in_topics;
+    char **out_topic;
+    int num_out_topics;
     bool retain;
     char **functions;
     int num_functions;
