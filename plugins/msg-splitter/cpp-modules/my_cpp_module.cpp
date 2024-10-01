@@ -134,21 +134,40 @@ public:
 
         for (size_t i = 0; i < yaml_docs.size(); ++i) {
             YAML::Node doc = yaml_docs[i];
+            vector<string> v_tmp;
 
             // Carica in_topic e out_topic
-            (*documents)[i].num_in_topics = doc["inTopic"].size();
+            if (doc["inTopic"].IsSequence()){
+                v_tmp = doc["inTopic"].as<vector<string>>();
+            }
+            else{
+                v_tmp.clear();
+                v_tmp.push_back(doc["inTopic"].as<string>());
+            }
+            
+            //TODO reduce code repetition, solve for parameters and functions
+
+            (*documents)[i].num_in_topics = v_tmp.size();
             (*documents)[i].in_topic = (char**)mosquitto_calloc(1,(*documents)[i].num_in_topics * sizeof(char*));
             for (int j = 0; j < (*documents)[i].num_in_topics; ++j) {
-                (*documents)[i].in_topic[j] = strdup(doc["inTopic"][j].as<string>().c_str());
+                (*documents)[i].in_topic[j] = strdup(v_tmp[j].c_str());
                 (*documents)[i].in_topic[j][sizeof((*documents)[i].in_topic[j]) - 1] = '\0'; // Assicura che sia null-terminato
             }
             //strncpy((*documents)[i].in_topic, doc["inTopic"].as<string>().c_str(), sizeof((*documents)[i].in_topic) - 1);
 
 
-            (*documents)[i].num_out_topics = doc["outTopic"].size();
+            if (doc["outTopic"].IsSequence()){
+                v_tmp = doc["outTopic"].as<vector<string>>();
+            }
+            else{
+                v_tmp.clear();
+                v_tmp.push_back(doc["outTopic"].as<string>());
+            }
+
+            (*documents)[i].num_out_topics = v_tmp.size();
             (*documents)[i].out_topic = (char**)mosquitto_calloc(1,(*documents)[i].num_out_topics * sizeof(char*));
             for (int j = 0; j < (*documents)[i].num_out_topics; ++j) {
-                (*documents)[i].out_topic[j] = strdup(doc["outTopic"][j].as<string>().c_str());
+                (*documents)[i].out_topic[j] = strdup(v_tmp[j].c_str());
                 (*documents)[i].out_topic[j][sizeof((*documents)[i].out_topic[j]) - 1] = '\0'; // Assicura che sia null-terminato
             }
             //strncpy((*documents)[i].out_topic, doc["outTopic"].as<string>().c_str(), sizeof((*documents)[i].out_topic) - 1);
@@ -159,6 +178,8 @@ public:
             (*documents)[i].retain = doc["retain"].as<bool>();
 
             cout<<"here2"<<endl;
+
+
 
             // Funzioni (array dinamico di stringhe)
             (*documents)[i].num_functions = doc["function"].size();

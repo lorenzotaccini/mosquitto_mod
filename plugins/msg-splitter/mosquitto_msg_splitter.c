@@ -61,13 +61,14 @@ static int callback_message(int event, void *event_data, void *userdata)
 	memcpy(new_topic+(uint32_t)strlen("test"), ed->topic, (uint32_t)strlen(ed->topic));
 
 	ed->topic=new_topic;
+
+	printf("some data: %s", *documents[1].in_topic);
 	
 
 	Wrapper* obj = wrapper_new();
     wrapper_publish(obj,NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
     wrapper_delete(obj);
 
-	printf("message coming from one of these topics: %s", documents[1].in_topic);
     //C++ FUNCTION PROCESSING THE MESSAGES 
 	//process_msg(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 
