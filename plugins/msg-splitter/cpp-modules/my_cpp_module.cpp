@@ -112,101 +112,21 @@ FORMAT string_to_format(const string &format_str) {
 
 
 class Wrapper {
+
 public:
+
+    Wrapper(){
+        y_l.load();
+    }
     
     void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
         mosquitto_broker_publish_copy(clientid,topic,payload_len,payload,qos,retain,properties);
     }
 
-    int load_yaml(const char *filename, YamlDocument **documents){
-        
-        YamlLoader loader(filename);
-        vector<YAML::Node> yaml_docs = loader.load();
+private:
+    YamlLoader y_l;
 
-        for(auto &e: yaml_docs){
-            cout<<e<<endl;
-        }
-
-        *documents = (YamlDocument*)mosquitto_calloc(1,yaml_docs.size() * sizeof(YamlDocument));
-        if (*documents == NULL) {
-            return -1;
-        }
-
-        for (size_t i = 0; i < yaml_docs.size(); ++i) {
-            YAML::Node doc = yaml_docs[i];
-            vector<string> v_tmp;
-
-            // Carica in_topic e out_topic
-            if (doc["inTopic"].IsSequence()){
-                v_tmp = doc["inTopic"].as<vector<string>>();
-            }
-            else{
-                v_tmp.clear();
-                v_tmp.push_back(doc["inTopic"].as<string>());
-            }
-            
-            //TODO reduce code repetition, solve for parameters and functions
-
-            (*documents)[i].num_in_topics = v_tmp.size();
-            (*documents)[i].in_topic = (char**)mosquitto_calloc(1,(*documents)[i].num_in_topics * sizeof(char*));
-            for (int j = 0; j < (*documents)[i].num_in_topics; ++j) {
-                (*documents)[i].in_topic[j] = strdup(v_tmp[j].c_str());
-                (*documents)[i].in_topic[j][sizeof((*documents)[i].in_topic[j]) - 1] = '\0'; // Assicura che sia null-terminato
-            }
-            //strncpy((*documents)[i].in_topic, doc["inTopic"].as<string>().c_str(), sizeof((*documents)[i].in_topic) - 1);
-
-
-            if (doc["outTopic"].IsSequence()){
-                v_tmp = doc["outTopic"].as<vector<string>>();
-            }
-            else{
-                v_tmp.clear();
-                v_tmp.push_back(doc["outTopic"].as<string>());
-            }
-
-            (*documents)[i].num_out_topics = v_tmp.size();
-            (*documents)[i].out_topic = (char**)mosquitto_calloc(1,(*documents)[i].num_out_topics * sizeof(char*));
-            for (int j = 0; j < (*documents)[i].num_out_topics; ++j) {
-                (*documents)[i].out_topic[j] = strdup(v_tmp[j].c_str());
-                (*documents)[i].out_topic[j][sizeof((*documents)[i].out_topic[j]) - 1] = '\0'; // Assicura che sia null-terminato
-            }
-            //strncpy((*documents)[i].out_topic, doc["outTopic"].as<string>().c_str(), sizeof((*documents)[i].out_topic) - 1);
-
-            cout<<"here"<<endl;
-
-            // Retain
-            (*documents)[i].retain = doc["retain"].as<bool>();
-
-            cout<<"here2"<<endl;
-
-
-
-            // Funzioni (array dinamico di stringhe)
-            (*documents)[i].num_functions = doc["function"].size();
-            (*documents)[i].functions = (char**)mosquitto_calloc(1,(*documents)[i].num_functions * sizeof(char*));
-            for (int j = 0; j < (*documents)[i].num_functions; ++j) {
-                (*documents)[i].functions[j] = strdup(doc["function"][j].as<string>().c_str());
-            }
-
-            // Parametri (array dinamico di stringhe)
-            (*documents)[i].num_parameters = doc["parameters"].size();
-            (*documents)[i].parameters = (char**)mosquitto_calloc(1,(*documents)[i].num_parameters * sizeof(char*));
-            for (int j = 0; j < (*documents)[i].num_parameters; ++j) {
-                (*documents)[i].parameters[j] = strdup(doc["parameters"][j].as<string>().c_str());
-            }
-
-            cout<<"here3"<<endl;
-
-            // Formati di input e output
-            (*documents)[i].in_format = string_to_format(doc["inFormat"].as<string>());
-            (*documents)[i].out_format = string_to_format(doc["outFormat"].as<string>());
-
-            cout<<"here4"<<endl;
-        }
-
-        // Restituisce il numero di documenti caricati
-        return yaml_docs.size();
-    }
+    
 
 
     
@@ -217,9 +137,6 @@ extern "C" {
     void wrapper_publish(Wrapper* instance, const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) { 
         instance->publish(clientid,topic,payload_len,payload,qos,retain,properties); 
     }
-    int wrapper_load_yaml(Wrapper* instance, const char *filename, YamlDocument **documents){ 
-        return instance->load_yaml(filename, documents); 
-    }
-    void wrapper_free_docs_mem(YamlDocument *docs, int n_docs){int I;};
+
     void wrapper_delete(Wrapper* instance) { delete instance; }
 }

@@ -14,7 +14,6 @@
 
 static mosquitto_plugin_id_t *mosq_pid = NULL;
 
-YamlDocument *documents = NULL;
 int num_documents = 0;
 
 static int callback_message(int event, void *event_data, void *userdata)
@@ -61,8 +60,6 @@ static int callback_message(int event, void *event_data, void *userdata)
 	memcpy(new_topic+(uint32_t)strlen("test"), ed->topic, (uint32_t)strlen(ed->topic));
 
 	ed->topic=new_topic;
-
-	printf("some data: %s", *documents[1].in_topic);
 	
 
 	Wrapper* obj = wrapper_new();
@@ -98,8 +95,8 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 
 	//WILL LOAD YAML DOCUMENTS? IN GLOBAL STRUCT?
 	//TODO load_yaml(); -> broken compatibility between C and C++ class, solve
-	Wrapper* obj = wrapper_new();
-	num_documents= wrapper_load_yaml(obj,"config.yml", &documents);
+	Wrapper *obj = wrapper_new();
+
 	return mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE, callback_message, NULL, NULL);
 }
 
