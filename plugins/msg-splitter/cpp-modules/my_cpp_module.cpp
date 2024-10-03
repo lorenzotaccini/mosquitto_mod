@@ -123,6 +123,7 @@ public:
 
     void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
 
+        //TODO filter based on input topic, but also: modify function to get message's input topic
         for(auto &d: yaml_content){
             if(d["outTopic"].IsSequence()){
                 for(auto &o_t: d["outTopic"].as<vector<string>>()){
@@ -140,7 +141,6 @@ public:
 private:
     YamlLoader yaml_loader;
     vector<YAML::Node> yaml_content;
-    vector<string> v_tmp;
 
 };
 

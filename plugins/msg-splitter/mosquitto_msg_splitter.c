@@ -62,7 +62,8 @@ static int callback_message(int event, void *event_data, void *userdata)
 
 	ed->topic=new_topic;
 	
-
+	//TODO decide if messages will be published by wrapper function or returned here and published from here (maybe more consistent). Remember
+	//first one will be always published through ed->payload modification
     wrapper_publish(obj,NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
     //wrapper_delete(obj);
 
