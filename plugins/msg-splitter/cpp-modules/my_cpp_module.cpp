@@ -112,28 +112,40 @@ FORMAT string_to_format(const string &format_str) {
 
 
 class Wrapper {
-
 public:
-
-    Wrapper(){
-        y_l.load();
-    }
     
-    void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
-        mosquitto_broker_publish_copy(clientid,topic,payload_len,payload,qos,retain,properties);
+
+    Wrapper(const string& configfile_name)
+        : yaml_loader(configfile_name) {
+        cout << "Wrapper initialized with config file: " << configfile_name << endl;
+        yaml_content = yaml_loader.load();
     }
+
+    void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
+
+        for(auto &d: yaml_content){
+            if(d["outTopic"].IsSequence()){
+                for(auto &o_t: d["outTopic"].as<vector<string>>()){
+                    cout<<o_t<<endl;
+                    mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,payload,qos,retain,properties);
+                }
+            } else {
+                cout<<d["outTopic"].as<string>()<<endl;
+                mosquitto_broker_publish_copy(clientid,d["outTopic"].as<string>().c_str(),payload_len,payload,qos,retain,properties);
+            }
+        }
+    }
+
 
 private:
-    YamlLoader y_l;
+    YamlLoader yaml_loader;
+    vector<YAML::Node> yaml_content;
+    vector<string> v_tmp;
 
-    
-
-
-    
 };
 
 extern "C" {
-    Wrapper* wrapper_new() { return new Wrapper(); }
+    Wrapper* wrapper_new(const char *configfile_name) { return new Wrapper(configfile_name); }
     void wrapper_publish(Wrapper* instance, const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) { 
         instance->publish(clientid,topic,payload_len,payload,qos,retain,properties); 
     }

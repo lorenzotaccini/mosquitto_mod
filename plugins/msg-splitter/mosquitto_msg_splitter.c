@@ -13,6 +13,7 @@
 #define UNUSED(A) (void)(A)
 
 static mosquitto_plugin_id_t *mosq_pid = NULL;
+Wrapper* obj = NULL;
 
 int num_documents = 0;
 
@@ -62,9 +63,8 @@ static int callback_message(int event, void *event_data, void *userdata)
 	ed->topic=new_topic;
 	
 
-	Wrapper* obj = wrapper_new();
     wrapper_publish(obj,NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
-    wrapper_delete(obj);
+    //wrapper_delete(obj);
 
     //C++ FUNCTION PROCESSING THE MESSAGES 
 	//process_msg(NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
@@ -95,7 +95,7 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 
 	//WILL LOAD YAML DOCUMENTS? IN GLOBAL STRUCT?
 	//TODO load_yaml(); -> broken compatibility between C and C++ class, solve
-	Wrapper *obj = wrapper_new();
+	obj = wrapper_new("config.yml");
 
 	return mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE, callback_message, NULL, NULL);
 }
