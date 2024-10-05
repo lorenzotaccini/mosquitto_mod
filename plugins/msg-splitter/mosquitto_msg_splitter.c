@@ -8,7 +8,7 @@
 #include "lib/logging_mosq.h"
 //#include "process.hpp"
 
-#include "my_cpp_module.h"
+#include "wrapper.h"
 
 #define UNUSED(A) (void)(A)
 
@@ -52,19 +52,19 @@ static int callback_message(int event, void *event_data, void *userdata)
 	ed->payloadlen = new_payloadlen;
 	
 	//TEST -> CHANGE ALSO PUBLISH TOPIC OTHER THAN PAYLOAD
-	uint32_t new_topiclen = (uint32_t)strlen(ed->topic) + (uint32_t)strlen("test")+1;
-	char *new_topic = (char*)mosquitto_calloc(1, new_topiclen);
-	if(new_topic == NULL){
-		return MOSQ_ERR_NOMEM;
-	}
-	snprintf(new_topic,new_topiclen, "test");
-	memcpy(new_topic+(uint32_t)strlen("test"), ed->topic, (uint32_t)strlen(ed->topic));
+	// uint32_t new_topiclen = (uint32_t)strlen(ed->topic) + (uint32_t)strlen("test")+1;
+	// char *new_topic = (char*)mosquitto_calloc(1, new_topiclen);
+	// if(new_topic == NULL){
+	// 	return MOSQ_ERR_NOMEM;
+	// }
+	// snprintf(new_topic,new_topiclen, "test");
+	// memcpy(new_topic+(uint32_t)strlen("test"), ed->topic, (uint32_t)strlen(ed->topic));
 
-	ed->topic=new_topic;
+	// ed->topic=new_topic;
 	
 	//TODO decide if messages will be published by wrapper function or returned here and published from here (maybe more consistent). Remember
 	//first one will be always published through ed->payload modification
-    wrapper_publish(obj,NULL,"other_topic",(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
+    wrapper_publish(obj,NULL, ed->topic,(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
     //wrapper_delete(obj);
 
     //C++ FUNCTION PROCESSING THE MESSAGES 

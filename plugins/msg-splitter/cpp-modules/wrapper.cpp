@@ -17,7 +17,7 @@
 #include <yaml-cpp/yaml.h>
 #include "rapidcsv.h"
 #include "mosquitto_broker.h"
-#include "my_cpp_module.h"
+#include "wrapper.h"
 
 using namespace std;
 
@@ -46,13 +46,13 @@ public:
                     cout<<"Document not loaded: "<<to_string(i).c_str()<<endl;
                 }
             }
-        } catch (const runtime_error& e) {
-            cout<<string(e.what()).c_str();
-            exit(-1);
-        } catch (const YAML::ParserException& e) {
+        } catch (const YAML::ParserException& e) {  // Cattura prima l'eccezione derivata
             cout<<"Error in YAML file: "<<string(e.what()).c_str()<<endl;
             return {};
-        }
+        } catch (const runtime_error& e) {  // Cattura successivamente quella più generale
+            cout<<string(e.what()).c_str();
+            exit(-1);
+}
 
         return valid_docs;
     }
@@ -126,21 +126,39 @@ public:
         yaml_content = yaml_loader.load();
     }
 
-    void publish(const char *clientid,const char *topic, int payload_len, void* payload, int qos,bool retain, mosquitto_property *properties) {
+    //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
+    void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
 
-        //TODO filter based on input topic, but also: modify function to get message's input topic
-        for(auto &d: yaml_content){
-            if(d["outTopic"].IsSequence()){
-                for(auto &o_t: d["outTopic"].as<vector<string>>()){
-                    cout<<o_t<<endl;
-                    mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,payload,qos,retain,properties);
+        auto publish_to_out_topics = [&](const YAML::Node& d) {
+            cout<<"im here"<<endl;
+            if (d["outTopic"].IsSequence()) {
+                for (const auto& o_t : d["outTopic"].as<vector<string>>()) {
+                    cout << o_t << endl;
+                    mosquitto_broker_publish_copy(clientid, o_t.c_str(), payload_len, payload, qos, retain, properties);
                 }
             } else {
-                cout<<d["outTopic"].as<string>()<<endl;
-                mosquitto_broker_publish_copy(clientid,d["outTopic"].as<string>().c_str(),payload_len,payload,qos,retain,properties);
+                cout << d["outTopic"].as<string>() << endl;
+                mosquitto_broker_publish_copy(clientid, d["outTopic"].as<string>().c_str(), payload_len, payload, qos, retain, properties);
+            }
+        };
+
+        for (const auto& d : yaml_content) {
+            vector<string> in_topics;
+
+            if (d["inTopic"].IsSequence()) {
+                in_topics = d["inTopic"].as<vector<string>>();
+            } else {
+                in_topics.push_back(d["inTopic"].as<string>());
+            }
+
+            for (const auto& i_t : in_topics) {
+                if (!strcmp(i_t.c_str(), topic)) {
+                    publish_to_out_topics(d);
+                }
             }
         }
     }
+
 
 
 private:
