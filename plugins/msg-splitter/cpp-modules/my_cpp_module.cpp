@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "tinyxml2.h"
+#include "simdjson.h"
 //#include "yaml.h"
 #include <yaml-cpp/yaml.h>
 #include "rapidcsv.h"

@@ -3,6 +3,7 @@ include ../../config.mk
 PLUGIN_CPPFLAGS += -Icpp-modules/
 PLUGIN_CPPFLAGS += -Ilib/xml
 PLUGIN_CPPFLAGS += -Ilib/csv
+PLUGIN_CPPFLAGS += -Ilib/json
 #PLUGIN_CPPFLAGS += -Ilib/yaml/include/yaml-cpp
 
 .PHONY : all binary check clean reallyclean test install uninstall
