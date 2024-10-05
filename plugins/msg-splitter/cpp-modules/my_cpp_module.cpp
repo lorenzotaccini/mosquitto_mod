@@ -10,7 +10,11 @@
 #include <sstream>
 #include <cstdlib>
 #include <string.h>
+
+#include "tinyxml2.h"
+//#include "yaml.h"
 #include <yaml-cpp/yaml.h>
+#include "rapidcsv.h"
 #include "mosquitto_broker.h"
 #include "my_cpp_module.h"
 
@@ -29,23 +33,23 @@ public:
             if (!file.is_open()) {
                 throw runtime_error("Config file not found");
             }
-            cout<< "Loading configuration file: "<<configfile_name.c_str();
+            cout<< "Loading configuration file: "<<configfile_name.c_str()<<endl;
             vector<YAML::Node> docs = YAML::LoadAll(file);
 
             for (size_t i = 0; i < docs.size(); ++i) {
                 YAML::Node doc = docs[i];
                 if (check_structure(doc)) {
-                    cout<<"Successfully loaded document "<<to_string(i).c_str();
+                    cout<<"Successfully loaded document "<<to_string(i).c_str()<<endl;
                     valid_docs.push_back(doc);
                 } else {
-                    cout<<"Document not loaded: "<<to_string(i).c_str();
+                    cout<<"Document not loaded: "<<to_string(i).c_str()<<endl;
                 }
             }
         } catch (const runtime_error& e) {
             cout<<string(e.what()).c_str();
             exit(-1);
         } catch (const YAML::ParserException& e) {
-            cout<<"Error in YAML file: "<<string(e.what()).c_str();
+            cout<<"Error in YAML file: "<<string(e.what()).c_str()<<endl;
             return {};
         }
 
@@ -89,7 +93,7 @@ private:
         }
 
         if (!wrong_fields.empty()) {
-            cout<<"The following fields are wrong or missing: ";
+            cout<<"The following fields are wrong or missing: "<<endl;
             for (const auto& field : wrong_fields) {
                 cout<<(" - " + field)<<endl;
             }

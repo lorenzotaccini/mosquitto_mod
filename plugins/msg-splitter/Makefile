@@ -1,14 +1,16 @@
 include ../../config.mk
 
 PLUGIN_CPPFLAGS += -Icpp-modules/
-PLUGIN_CPPFLAGS += -Ilib/yaml-cpp
+PLUGIN_CPPFLAGS += -Ilib/xml
+PLUGIN_CPPFLAGS += -Ilib/csv
+#PLUGIN_CPPFLAGS += -Ilib/yaml/include/yaml-cpp
 
 .PHONY : all binary check clean reallyclean test install uninstall
 
 PLUGIN_NAME=mosquitto_msg_splitter
 
 #cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
-cpp-modules= cpp-modules/my_cpp_module.cpp
+cpp-modules= cpp-modules/my_cpp_module.cpp lib/xml/tinyxml2.cpp
 all : binary
 
 binary : ${PLUGIN_NAME}.so
@@ -32,7 +34,7 @@ ${PLUGIN_NAME}.so : ${PLUGIN_NAME}.c libmodules.a
 
 reallyclean : clean
 clean:
-	-rm -f cpp-modules/*.o *.o ${PLUGIN_NAME}.so *.gcda *.gcno libmodules.a
+	-rm -f cpp-modules/*.o *.o lib/*/*.o ${PLUGIN_NAME}.so *.gcda *.gcno libmodules.a
 
 check: test
 test:
