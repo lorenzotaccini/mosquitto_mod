@@ -66,8 +66,7 @@ private:
             {"retain", regex(R"(^(true|false)$)", regex_constants::icase)},
             {"function", regex(R"(^([a-zA-Z0-9_\-])+$)")},
             {"parameters", regex(R"(^([a-zA-Z0-9_\-])+$)")},
-            {"outFormat", regex(R"(\b(json|xml|yaml|csv)\b)")},
-            {"inFormat", regex(R"(\b(json|xml|yaml|csv)\b)")}
+            {"format", regex(R"(\b(json|xml|yaml|csv)\b)")},
         };
 
         vector<string> wrong_fields;
@@ -129,10 +128,8 @@ public:
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
 
         auto publish_to_out_topics = [&](const YAML::Node& d) {
-            cout<<"im here"<<endl;
             if (d["outTopic"].IsSequence()) {
                 for (const auto& o_t : d["outTopic"].as<vector<string>>()) {
-                    cout << o_t << endl;
                     mosquitto_broker_publish_copy(clientid, o_t.c_str(), payload_len, payload, qos, retain, properties);
                 }
             } else {

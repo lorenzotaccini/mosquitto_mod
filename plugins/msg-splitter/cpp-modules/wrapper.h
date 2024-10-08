@@ -7,11 +7,9 @@
 extern "C" {
 #endif
 
-// Dichiarazioni delle funzioni wrapper per C
 typedef struct Wrapper Wrapper;
 
 typedef enum {XML,JSON,CSV,YML} FORMAT;
-
 
 Wrapper* wrapper_new(const char*);
 void wrapper_publish(Wrapper* instance,const char *,const char *, int, void* , int ,bool , mosquitto_property *);
