@@ -1,4 +1,4 @@
-#include "doc_processor.h"
+//#include "doc_processor.h"
 
 
 #include <iostream>
@@ -22,16 +22,18 @@ using namespace std;
 using namespace tinyxml2;
 using json = nlohmann::json;
 
+using namespace std;
+
 namespace DocProcessor {
 
 
 // Funzione per normalizzare l'input nei diversi formati
-vector<map<string, string>> normalize_input(const string& input_format, const string& data) {
+vector<map<string, string>> normalize_input(const string& input_format, void* data) {
     vector<map<string, string>> result;
 
     if (input_format == "csv") {
         // Parsing CSV con rapidcsv
-        stringstream ss(data);
+        stringstream ss((const char*)data);
         rapidcsv::Document doc(ss);
         size_t rows = doc.GetRowCount();
         size_t cols = doc.GetColumnCount();
@@ -47,7 +49,7 @@ vector<map<string, string>> normalize_input(const string& input_format, const st
     } else if (input_format == "xml") {
         // Parsing XML con tinyxml2
         XMLDocument doc;
-        doc.Parse(data.c_str());
+        doc.Parse(((const char*)data));
         XMLElement* root = doc.RootElement();
 
         map<string, string> xml_map;
@@ -58,29 +60,29 @@ vector<map<string, string>> normalize_input(const string& input_format, const st
 
 } else if (input_format == "json") {
     // Parsing JSON con nlohmann/json
-    json json_data = json::parse(data); // Parsing della stringa JSON
+    json json_data = json::parse((const char*)data); // Parsing della stringa JSON
 
     // Conversione in una struttura dati
     for (auto& [key, value] : json_data.items()) {
-        std::map<std::string, std::string> json_map;
+        map<string, string> json_map;
         
         // Assicurati di gestire i tipi di dati appropriati
         if (value.is_string()) {
-            json_map[key] = value.get<std::string>();
+            json_map[key] = value.get<string>();
         } else if (value.is_number()) {
-            json_map[key] = std::to_string(value.get<double>());
+            json_map[key] = to_string(value.get<double>());
         } else if (value.is_boolean()) {
             json_map[key] = value.get<bool>() ? "true" : "false";
         } else if (value.is_array()) {
             // Se l'array è presente, gestiscilo come necessario
-            std::vector<std::string> array_values;
+            vector<string> array_values;
             for (const auto& item : value) {
                 if (item.is_string()) {
-                    array_values.push_back(item.get<std::string>());
+                    array_values.push_back(item.get<string>());
                 }
             }
             // Puoi decidere come vuoi gestire l'array
-            json_map[key] = "Array with " + std::to_string(array_values.size()) + " elements.";
+            json_map[key] = "Array with " + to_string(array_values.size()) + " elements.";
         } else {
             // Altri tipi di dati (oggetti, null, ecc.)
             json_map[key] = "Unsupported type";
@@ -91,7 +93,8 @@ vector<map<string, string>> normalize_input(const string& input_format, const st
 
     } else if (input_format == "yaml") {
         // Parsing YAML con yaml-cpp
-        YAML::Node yaml_data = YAML::Load(data);
+        stringstream ss((const char*)data);
+        YAML::Node yaml_data = YAML::Load(ss);
 
         for (YAML::const_iterator it = yaml_data.begin(); it != yaml_data.end(); ++it) {
             map<string, string> yaml_map;

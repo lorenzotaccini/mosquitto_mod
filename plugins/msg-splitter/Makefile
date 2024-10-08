@@ -11,7 +11,7 @@ PLUGIN_CPPFLAGS += -Ilib/json
 PLUGIN_NAME=mosquitto_msg_splitter
 
 #cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
-cpp-modules= cpp-modules/wrapper.cpp lib/xml/tinyxml2.cpp
+cpp-modules= cpp-modules/wrapper.cpp cpp-modules/doc_processor.cpp lib/xml/tinyxml2.cpp
 all : binary
 
 binary : ${PLUGIN_NAME}.so

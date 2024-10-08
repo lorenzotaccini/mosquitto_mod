@@ -14,8 +14,11 @@
 
 #include "mosquitto_broker.h"
 #include "wrapper.h"
+#include "doc_processor.h"
 
 using namespace std;
+
+using namespace DocProcessor;
 
 
 class YamlLoader {
@@ -124,9 +127,12 @@ public:
     //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
 
+        cout<<*(string*)payload<<endl;
+
         auto publish_to_out_topics = [&](const YAML::Node& d) {
             if (d["outTopic"].IsSequence()) {
                 for (const auto& o_t : d["outTopic"].as<vector<string>>()) {
+                    //vector<map<string,string>> tmp = DocProcessor::normalize_input(d["format"].as<string>(),payload);
                     mosquitto_broker_publish_copy(clientid, o_t.c_str(), payload_len, payload, qos, retain, properties);
                 }
             } else {
