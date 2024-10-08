@@ -13,14 +13,14 @@
 
 
 #include "tinyxml2.h"
-#include "simdjson.h"
+#include "json.hpp"
 #include <yaml-cpp/yaml.h>
 #include "rapidcsv.h"
 #include <map>
 
 using namespace std;
 using namespace tinyxml2;
-using namespace simdjson;
+using json = nlohmann::json;
 
 namespace DocProcessor {
 
@@ -56,16 +56,38 @@ vector<map<string, string>> normalize_input(const string& input_format, const st
         }
         result.push_back(xml_map);
 
-    } else if (input_format == "json") {
-        // Parsing JSON con simdjson
-        ondemand::parser parser;
-        ondemand::document json_doc = parser.iterate(data);
+} else if (input_format == "json") {
+    // Parsing JSON con nlohmann/json
+    json json_data = json::parse(data); // Parsing della stringa JSON
 
-        for (auto field : json_doc.get_object()) {
-            map<string, string> json_map;
-            json_map[string(field.unescaped_key())] = string(field.value().get_string());
-            result.push_back(json_map);
+    // Conversione in una struttura dati
+    for (auto& [key, value] : json_data.items()) {
+        std::map<std::string, std::string> json_map;
+        
+        // Assicurati di gestire i tipi di dati appropriati
+        if (value.is_string()) {
+            json_map[key] = value.get<std::string>();
+        } else if (value.is_number()) {
+            json_map[key] = std::to_string(value.get<double>());
+        } else if (value.is_boolean()) {
+            json_map[key] = value.get<bool>() ? "true" : "false";
+        } else if (value.is_array()) {
+            // Se l'array è presente, gestiscilo come necessario
+            std::vector<std::string> array_values;
+            for (const auto& item : value) {
+                if (item.is_string()) {
+                    array_values.push_back(item.get<std::string>());
+                }
+            }
+            // Puoi decidere come vuoi gestire l'array
+            json_map[key] = "Array with " + std::to_string(array_values.size()) + " elements.";
+        } else {
+            // Altri tipi di dati (oggetti, null, ecc.)
+            json_map[key] = "Unsupported type";
         }
+        
+        result.push_back(json_map); // Aggiungi la mappa al risultato
+    }
 
     } else if (input_format == "yaml") {
         // Parsing YAML con yaml-cpp
