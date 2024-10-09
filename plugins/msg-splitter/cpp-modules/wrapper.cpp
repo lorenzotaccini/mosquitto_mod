@@ -14,11 +14,11 @@
 
 #include "mosquitto_broker.h"
 #include "wrapper.h"
-#include "doc_processor.h"
+//#include "doc_processor.h"
 
 using namespace std;
 
-using namespace DocProcessor;
+//using namespace DocProcessor;
 
 
 class YamlLoader {
@@ -118,51 +118,55 @@ class Wrapper {
 public:
     
 
-    Wrapper(const string& configfile_name)
-        : yaml_loader(configfile_name) {
+    Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
-    }
 
-    //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
-    void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
+        /*topics_map map: map in which each input topic (key) is associated with a file format and a list of output topics_map (value, pair).
+          When a message is coming on a certain input topic, the module is assuming its format based on the "format"
+          field content of this topic in the configuration .yml file. */
+        for(auto &d: yaml_content){
+            vector<string> o_t_vec;
 
-        cout<<*(string*)payload<<endl;
-
-        auto publish_to_out_topics = [&](const YAML::Node& d) {
-            if (d["outTopic"].IsSequence()) {
-                for (const auto& o_t : d["outTopic"].as<vector<string>>()) {
-                    //vector<map<string,string>> tmp = DocProcessor::normalize_input(d["format"].as<string>(),payload);
-                    mosquitto_broker_publish_copy(clientid, o_t.c_str(), payload_len, payload, qos, retain, properties);
-                }
-            } else {
-                cout << d["outTopic"].as<string>() << endl;
-                mosquitto_broker_publish_copy(clientid, d["outTopic"].as<string>().c_str(), payload_len, payload, qos, retain, properties);
-            }
-        };
-
-        for (const auto& d : yaml_content) {
-            vector<string> in_topics;
-
-            if (d["inTopic"].IsSequence()) {
-                in_topics = d["inTopic"].as<vector<string>>();
-            } else {
-                in_topics.push_back(d["inTopic"].as<string>());
+            if(d["outTopic"].IsSequence()){
+                o_t_vec = d["outTopic"].as<vector<string>>();
+            } else{
+                o_t_vec.push_back(d["outTopic"].as<string>());
             }
 
-            for (const auto& i_t : in_topics) {
-                if (!strcmp(i_t.c_str(), topic)) {
-                    publish_to_out_topics(d);
+            if(d["inTopic"].IsSequence()){
+                for(auto i_t: d["inTopic"]){
+                    topics_map[i_t.as<string>()] = pair<string,vector<string>>(d["format"].as<string>(), o_t_vec);
                 }
+            }
+            else{
+                topics_map[d["inTopic"].as<string>()] = pair<string,vector<string>>(d["format"].as<string>(), o_t_vec);
             }
         }
     }
 
+    //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
+    void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
+        
+        if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
+            for(auto &o_t: topics_map[topic].second){ //iterate on output topics
+                mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,payload,qos,retain,properties);
+                cout<<"modded and published on topic "<<o_t<<endl;
+            }
+        } else{
+            cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
+        }
 
+    }
 
 private:
     YamlLoader yaml_loader;
     vector<YAML::Node> yaml_content;
+
+    /*topics_map: map in which each input topic (key) is associated with a file format and a list of output topics_map (value, pair).
+        When a message is coming on a certain input topic, the module is assuming its format based on the "format"
+        field content of this topic in the configuration .yml file. */
+    map<string,pair<string,vector<string>>> topics_map;
 
 };
 
