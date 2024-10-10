@@ -64,10 +64,10 @@ static int callback_message(int event, void *event_data, void *userdata)
     wrapper_publish(wrapper_obj,NULL, ed->topic,(int)ed->payloadlen,ed->payload,ed->qos,ed->retain,ed->properties);
 
 
-	/*original message will still be published, you cannot stop it... unless?
+	/* TODO original message will still be published, you cannot stop it... unless?
 	 plugin.c -> plugin__handle__message() contains something that might be the code
 	 that allows for payload modification. Maybe you can free 
-	 the memory of the OG message here?*/
+	 the memory of the OG message here? -> more consistent to only work in a plugin without affecting broker's source code? */
 	return MOSQ_ERR_SUCCESS;
 }
 
@@ -92,8 +92,6 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 
 	mosq_pid = identifier;
 
-	//WILL LOAD YAML DOCUMENTS? IN GLOBAL STRUCT?
-	//TODO load_yaml(); -> broken compatibility between C and C++ class, solve
 	wrapper_obj = wrapper_new("config.yml");
 
 	return mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE, callback_message, NULL, NULL);

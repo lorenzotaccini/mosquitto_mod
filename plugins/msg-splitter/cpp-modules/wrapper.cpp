@@ -14,11 +14,11 @@
 
 #include "mosquitto_broker.h"
 #include "wrapper.h"
-//#include "doc_processor.h"
+#include "doc_processor.h"
 
 using namespace std;
 
-//using namespace DocProcessor;
+using namespace DocProcessor;
 
 
 class YamlLoader {
@@ -117,7 +117,6 @@ FORMAT string_to_format(const string &format_str) {
 class Wrapper {
 public:
     
-
     Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
