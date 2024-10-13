@@ -64,10 +64,10 @@ private:
             {"inTopic", regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"outTopic", regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
             {"retain", regex(R"(^(true|false)$)", regex_constants::icase)},
-            {"function", regex(R"(^([a-zA-Z0-9_\-])+$)")},
-            {"parameters", regex(R"(^([a-zA-Z0-9_\-])+$)")},
+            {"functions", regex(R"(^([a-zA-Z0-9_\-])+$)")},
             {"format", regex(R"(\b(json|xml|yaml|csv)\b)")},
         };
+        regex r_function_params = regex(R"(^([a-zA-Z0-9_\-])+$)");
 
         vector<string> wrong_fields;
         cout<<"Spell checking...";
@@ -79,11 +79,21 @@ private:
             }
 
             if (yaml_content[field].IsSequence()) {
+
                 for (auto v : yaml_content[field]) {
-                    if (!regex_match(v.as<string>(), pattern)) {
+                    if(v.IsSequence() && field=="functions"){ //checking for function params, the only nested sequence permitted
+                        for(auto p: v){
+                            if (!regex_match(p.as<string>(), r_function_params)) {
+                                wrong_fields.push_back(field);
+                            }
+                        }
+                    }
+
+                    else if (!regex_match(v.as<string>(), pattern)) {
                         wrong_fields.push_back(field);
                     }
                 }
+
             } else {
                 if (!regex_match(yaml_content[field].as<string>(), pattern)) {
                     wrong_fields.push_back(field);
@@ -116,39 +126,76 @@ FORMAT string_to_format(const string &format_str) {
 
 class Wrapper {
 public:
+    struct topics_info {
+        string format;
+        vector<string> output_topics;
+        vector<pair<string,vector<string>>> functions; // might become vector of function instances
+    };
     
     Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
 
-        /*topics_map map: map in which each input topic (key) is associated with a file format and a list of output topics_map (value, pair).
-          When a message is coming on a certain input topic, the module is assuming its format based on the "format"
-          field content of this topic in the configuration .yml file. */
         for(auto &d: yaml_content){
-            vector<string> o_t_vec;
+            topics_info t_i;
 
+            vector<string> o_t_vec;
             if(d["outTopic"].IsSequence()){
                 o_t_vec = d["outTopic"].as<vector<string>>();
             } else{
                 o_t_vec.push_back(d["outTopic"].as<string>());
             }
 
+            t_i.output_topics = o_t_vec;
+
+            vector<pair<string,vector<string>>> f_vec;
+            vector<string> params;
+
+            if(d["functions"].IsSequence()){
+                for(auto f: d["functions"]){ //iterate on functions
+                    if(f.IsSequence()){
+                        for(auto p: f){ //iterate on params of function
+                            params.push_back(p.as<string>());
+                        }
+                        f_vec.push_back(pair(f.as<string>(),params));
+                        params.clear();
+                    } else{ //function has no params
+                        f_vec.push_back(pair(f.as<string>(),vector<string>())); //empty vector of params
+                    }
+                }
+            } else{
+                cout<<"functions can only be listed as sequence in configuration document, error during mapping creation."<<endl;
+            }
+
+            t_i.functions = f_vec;
+
+            t_i.format = d["format"].as<string>();
+
             if(d["inTopic"].IsSequence()){
                 for(auto i_t: d["inTopic"]){
-                    topics_map[i_t.as<string>()] = pair<string,vector<string>>(d["format"].as<string>(), o_t_vec);
+                    topics_map[i_t.as<string>()] = t_i;
                 }
             }
             else{
-                topics_map[d["inTopic"].as<string>()] = pair<string,vector<string>>(d["format"].as<string>(), o_t_vec);
+                topics_map[d["inTopic"].as<string>()] = t_i;
             }
         }
     }
+
+
+    void* process_msg(void* payload, int payload_len, const topics_info& t_info ){
+        //TEST image splitting
+        
+    }
+
+    
 
     //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
-            for(auto &o_t: topics_map[topic].second){ //iterate on output topics
+            for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
+                process_msg(payload,payload_len,topics_map[topic]);
                 mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,payload,qos,retain,properties);
                 cout<<"modded and published on topic "<<o_t<<endl;
             }
@@ -165,7 +212,7 @@ private:
     /*topics_map: map in which each input topic (key) is associated with a file format and a list of output topics_map (value, pair).
         When a message is coming on a certain input topic, the module is assuming its format based on the "format"
         field content of this topic in the configuration .yml file. */
-    map<string,pair<string,vector<string>>> topics_map;
+    map<string,topics_info> topics_map;
 
 };
 
