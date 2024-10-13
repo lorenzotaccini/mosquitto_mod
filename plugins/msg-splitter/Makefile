@@ -4,6 +4,7 @@ PLUGIN_CPPFLAGS += -Icpp-modules/
 PLUGIN_CPPFLAGS += -Ilib/xml
 PLUGIN_CPPFLAGS += -Ilib/csv
 PLUGIN_CPPFLAGS += -Ilib/json
+PLUGIN_CPPFLAGS += -Ilib/img
 #PLUGIN_CPPFLAGS += -Ilib/yaml/include/yaml-cpp
 
 .PHONY : all binary check clean reallyclean test install uninstall
@@ -11,7 +12,7 @@ PLUGIN_CPPFLAGS += -Ilib/json
 PLUGIN_NAME=mosquitto_msg_splitter
 
 #cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
-cpp-modules= cpp-modules/wrapper.cpp cpp-modules/doc_processor.cpp lib/xml/tinyxml2.cpp
+cpp-modules= cpp-modules/wrapper.cpp cpp-modules/doc_processor.cpp lib/xml/tinyxml2.cpp cpp-modules/user_functions.cpp
 all : binary
 
 binary : ${PLUGIN_NAME}.so

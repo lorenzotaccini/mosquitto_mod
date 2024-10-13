@@ -111,45 +111,7 @@ vector<Document> normalize_input(const string& input_format, char* data) {
         }
 
     } else if(input_format == "png"){
-        std::vector<void*> split_image_from_buffer(void* image_buffer, int buffer_size, int n, int& width, int& height, int& channels) {
-            // Carica l'immagine dal buffer
-            unsigned char* img = stbi_load_from_memory(static_cast<unsigned char*>(image_buffer), buffer_size, &width, &height, &channels, 0);
 
-            if (!img) {
-                std::cerr << "Errore nel caricamento dell'immagine dal buffer" << std::endl;
-                return {};
-            }
-
-            // Calcola dimensioni del tile
-            int tile_width = width / n;
-            int tile_height = height / n;
-
-            std::vector<void*> tiles;
-            for (int row = 0; row < n; ++row) {
-                for (int col = 0; col < n; ++col) {
-                    // Alloca memoria per il tile
-                    unsigned char* tile = new unsigned char[tile_width * tile_height * channels];
-
-                    // Copia i pixel del tile
-                    for (int y = 0; y < tile_height; ++y) {
-                        for (int x = 0; x < tile_width; ++x) {
-                            for (int c = 0; c < channels; ++c) {
-                                tile[(y * tile_width + x) * channels + c] =
-                                    img[((row * tile_height + y) * width + (col * tile_width + x)) * channels + c];
-                            }
-                        }
-                    }
-
-                    // Aggiungi il tile alla lista
-                    tiles.push_back(static_cast<void*>(tile));
-                }
-            }
-
-            // Libera l'immagine originale
-            stbi_image_free(img);
-
-            return tiles;
-        }
 
 
 

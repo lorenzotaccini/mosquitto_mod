@@ -15,6 +15,7 @@
 #include "mosquitto_broker.h"
 #include "wrapper.h"
 #include "doc_processor.h"
+#include "user_functions.h"
 
 using namespace std;
 
@@ -59,59 +60,88 @@ public:
 private:
     string configfile_name;
 
-    bool check_structure(const YAML::Node& yaml_content) {
-        map<string, regex> required_fields = {
-            {"inTopic", regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
-            {"outTopic", regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
-            {"retain", regex(R"(^(true|false)$)", regex_constants::icase)},
-            {"functions", regex(R"(^([a-zA-Z0-9_\-])+$)")},
-            {"format", regex(R"(\b(json|xml|yaml|csv)\b)")},
-        };
-        regex r_function_params = regex(R"(^([a-zA-Z0-9_\-])+$)");
+bool check_structure(const YAML::Node& yaml_content) {
+    // Definiamo i campi obbligatori e i relativi pattern
+    map<string, regex> required_fields = {
+        {"inTopic", regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
+        {"outTopic", regex(R"(^([a-zA-Z0-9_\-#]+/?)*[a-zA-Z0-9_\-#]+$)")},
+        {"retain", regex(R"(^(true|false|True|False)$)")},
+        {"format", regex(R"(\b(json|xml|yaml|csv|png)\b)")},
+    };
 
-        vector<string> wrong_fields;
-        cout<<"Spell checking...";
+    regex r_function_name = regex(R"(^[a-zA-Z0-9_\-]+$)");  // Nome delle funzioni
+    regex r_function_param = regex(R"(^[a-zA-Z0-9_\-]+$)"); // Parametri delle funzioni
+    vector<string> wrong_fields;
 
-        for (const auto& [field, pattern] : required_fields) {
-            if (!yaml_content[field]) {
-                wrong_fields.push_back(field);
-                continue;
-            }
+    cout << "Spell checking..." << endl;
 
-            if (yaml_content[field].IsSequence()) {
+    // Verifichiamo ogni campo obbligatorio
+    for (const auto& [field, pattern] : required_fields) {
+        if (!yaml_content[field]) {
+            wrong_fields.push_back(field);  // Campo mancante
+            continue;
+        }
 
-                for (auto v : yaml_content[field]) {
-                    if(v.IsSequence() && field=="functions"){ //checking for function params, the only nested sequence permitted
-                        for(auto p: v){
-                            if (!regex_match(p.as<string>(), r_function_params)) {
-                                wrong_fields.push_back(field);
-                            }
-                        }
-                    }
-
-                    else if (!regex_match(v.as<string>(), pattern)) {
-                        wrong_fields.push_back(field);
-                    }
-                }
-
-            } else {
-                if (!regex_match(yaml_content[field].as<string>(), pattern)) {
+        if (yaml_content[field].IsSequence()) {
+            // Gestiamo i campi che sono sequenze (come `outTopic`)
+            for (auto v : yaml_content[field]) {
+                if (!regex_match(v.as<string>(), pattern)) {
                     wrong_fields.push_back(field);
                 }
             }
-        }
-
-        if (!wrong_fields.empty()) {
-            cout<<"The following fields are wrong or missing: "<<endl;
-            for (const auto& field : wrong_fields) {
-                cout<<(" - " + field)<<endl;
+        } else {
+            // Verifica scalare (singolo valore)
+            if (!regex_match(yaml_content[field].as<string>(), pattern)) {
+                wrong_fields.push_back(field);
             }
-            return false;
         }
-
-        cout<<"Configuration file is valid"<<endl;
-        return true;
     }
+
+    // Gestiamo la sezione 'functions', che può essere una sequenza di mappe
+    if (yaml_content["functions"]) {
+        if (!yaml_content["functions"].IsSequence()) {
+            wrong_fields.push_back("functions");
+        } else {
+            for (const auto& func : yaml_content["functions"]) {
+                if (!func.IsMap()) {
+                    wrong_fields.push_back("functions");
+                } else {
+                    for (auto it = func.begin(); it != func.end(); ++it) {
+                        string function_name = it->first.as<string>();
+                        if (!regex_match(function_name, r_function_name)) {
+                            wrong_fields.push_back("functions");
+                        }
+
+                        YAML::Node params = it->second;
+                        if (params.IsSequence()) {
+                            // Controlla i parametri della funzione
+                            for (const auto& param : params) {
+                                cout<<param<<endl;
+                                if (!regex_match(param.as<string>(), r_function_param)) {
+                                    wrong_fields.push_back("functions");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        wrong_fields.push_back("functions");
+    }
+
+    // Se ci sono campi errati o mancanti, segnaliamo
+    if (!wrong_fields.empty()) {
+        cout << "The following fields are wrong or missing: " << endl;
+        for (const auto& field : wrong_fields) {
+            cout << " - " << field << endl;
+        }
+        return false;
+    }
+
+    cout << "Configuration file is valid" << endl;
+    return true;
+}
 };
 
 FORMAT string_to_format(const string &format_str) {
@@ -135,6 +165,8 @@ public:
     Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
+
+        cout<<"ho finito il controllo"<<endl;
 
         for(auto &d: yaml_content){
             topics_info t_i;
@@ -185,7 +217,7 @@ public:
 
     void* process_msg(void* payload, int payload_len, const topics_info& t_info ){
         //TEST image splitting
-        
+
     }
 
     
@@ -195,7 +227,7 @@ public:
         
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
-                process_msg(payload,payload_len,topics_map[topic]);
+                //process_msg(payload,payload_len,topics_map[topic]);
                 mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,payload,qos,retain,properties);
                 cout<<"modded and published on topic "<<o_t<<endl;
             }
