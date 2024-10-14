@@ -28,7 +28,8 @@ std::vector<unsigned char> read_file_to_buffer(const std::string& filename) {
 }
 
 // Funzione che splitta l'immagine in n^2 parti con gestione delle righe e colonne rimanenti
-std::vector<void*> split_image(void* image_data, int data_size, int n, int& width, int& height, int& channels) {
+std::vector<void*> split_image(void* image_data, int data_size, int n) {
+    int width, height, channels;
     // Carica l'immagine dal buffer
     unsigned char* img = stbi_load_from_memory(static_cast<unsigned char*>(image_data), data_size, &width, &height, &channels, 0);
     if (!img) {

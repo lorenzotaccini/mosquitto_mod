@@ -8,6 +8,6 @@
 std::vector<unsigned char> read_file_to_buffer(const std::string& filename);
 
 // Funzione che splitta l'immagine in n^2 parti con gestione delle righe e colonne rimanenti
-std::vector<void*> split_image(void* image_data, int data_size, int n, int& width, int& height, int& channels);
+std::vector<void*> split_image(void* image_data, int data_size, int n);
 
 #endif // IMAGE_SPLITTER_H

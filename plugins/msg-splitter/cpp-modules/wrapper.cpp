@@ -232,8 +232,9 @@ public:
     }
 
 
-    void* process_msg(void* payload, int payload_len, const topics_info& t_info ){
+    void process_msg(void* payload, int payload_len, const topics_info& t_info ){
         //TEST image splitting
+        this->v_res = split_image(payload, payload_len,2);
 
     }
 
@@ -267,11 +268,16 @@ public:
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
+            //process_msg(payload,payload_len,topics_map[topic]);
+            this->v_res.push_back(payload);
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
-                //process_msg(payload,payload_len,topics_map[topic]);
-                mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,payload,qos,retain,properties);
+                for(auto i: this->v_res){
+                    cout<<sizeof(i)<<endl; //WRONG: this returns size of pointer to void, always 8 bit on 64-bit system
+                    mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,i,qos,retain,properties);
+                }
                 cout<<"modded and published on topic "<<o_t<<endl;
             }
+            v_res.clear();
         } else{
             cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
         }
@@ -286,6 +292,8 @@ private:
         When a message is coming on a certain input topic, the module is assuming its format based on the "format"
         field content of this topic in the configuration .yml file. */
     map<string,topics_info> topics_map;
+
+    vector<void*> v_res;
 
 };
 
