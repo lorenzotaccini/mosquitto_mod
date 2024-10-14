@@ -69,8 +69,7 @@ bool check_structure(const YAML::Node& yaml_content) {
         {"format", regex(R"(\b(json|xml|yaml|csv|png)\b)")},
     };
 
-    regex r_function_name = regex(R"(^[a-zA-Z0-9_\-]+$)");  // Nome delle funzioni
-    regex r_function_param = regex(R"(^[a-zA-Z0-9_\-]+$)"); // Parametri delle funzioni
+    regex r_function = regex(R"(^[a-zA-Z0-9_\-]+$)"); // Parametri delle funzioni
     vector<string> wrong_fields;
 
     cout << "Spell checking..." << endl;
@@ -108,7 +107,7 @@ bool check_structure(const YAML::Node& yaml_content) {
                 } else {
                     for (auto it = func.begin(); it != func.end(); ++it) {
                         string function_name = it->first.as<string>();
-                        if (!regex_match(function_name, r_function_name)) {
+                        if (!regex_match(function_name, r_function)) {
                             wrong_fields.push_back("functions");
                         }
 
@@ -117,7 +116,7 @@ bool check_structure(const YAML::Node& yaml_content) {
                             // Controlla i parametri della funzione
                             for (const auto& param : params) {
                                 cout<<param<<endl;
-                                if (!regex_match(param.as<string>(), r_function_param)) {
+                                if (!regex_match(param.as<string>(), r_function)) {
                                     wrong_fields.push_back("functions");
                                 }
                             }
@@ -166,7 +165,7 @@ public:
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
 
-        cout<<"ho finito il controllo"<<endl;
+
 
         for(auto &d: yaml_content){
             topics_info t_i;
@@ -180,24 +179,38 @@ public:
 
             t_i.output_topics = o_t_vec;
 
-            vector<pair<string,vector<string>>> f_vec;
+            vector<pair<string,vector<string>>> f_vec;  // Contiene le coppie (funzione, parametri)
             vector<string> params;
 
-            if(d["functions"].IsSequence()){
-                for(auto f: d["functions"]){ //iterate on functions
-                    if(f.IsSequence()){
-                        for(auto p: f){ //iterate on params of function
-                            params.push_back(p.as<string>());
+            if (d["functions"].IsSequence()) {
+                // Itera su ogni funzione
+                for (const auto& f : d["functions"]) {
+                    if (f.IsMap()) {  // Ogni funzione è una mappa con un solo elemento
+                        for (auto it = f.begin(); it != f.end(); ++it) {
+                            string function_name = it->first.as<string>();  // Nome della funzione
+                            YAML::Node param_list = it->second;  // Lista dei parametri
+
+                            if (param_list.IsSequence()) {
+                                // Itera sui parametri e li aggiunge al vettore
+                                for (const auto& p : param_list) {
+                                    params.push_back(p.as<string>());
+                                }
+                            }
+
+                            // Aggiungi la coppia (funzione, parametri) a f_vec
+                            f_vec.push_back(make_pair(function_name, params));
+
+                            // Pulisci il vettore dei parametri per la prossima funzione
+                            params.clear();
                         }
-                        f_vec.push_back(pair(f.as<string>(),params));
-                        params.clear();
-                    } else{ //function has no params
-                        f_vec.push_back(pair(f.as<string>(),vector<string>())); //empty vector of params
+                    } else {
+                        cout << "Error: Each function must be a map with a function name and its parameters." << endl;
                     }
                 }
-            } else{
-                cout<<"functions can only be listed as sequence in configuration document, error during mapping creation."<<endl;
+            } else {
+                cout << "Error: 'functions' must be listed as a sequence in the configuration document." << endl;
             }
+
 
             t_i.functions = f_vec;
 
@@ -212,6 +225,10 @@ public:
                 topics_map[d["inTopic"].as<string>()] = t_i;
             }
         }
+
+        for(auto i: topics_map){
+            print_topics_info(topics_map[i.first]);
+        }
     }
 
 
@@ -220,7 +237,31 @@ public:
 
     }
 
-    
+    void print_topics_info(const topics_info& info) {
+        cout << "Format: " << info.format << endl;
+
+        // Stampa gli output topics
+        cout << "Output Topics:" << endl;
+        for (const auto& topic : info.output_topics) {
+            cout << " - " << topic << endl;
+        }
+
+        // Stampa le funzioni e i relativi parametri
+        cout << "Functions:" << endl;
+        for (const auto& func : info.functions) {
+            cout << " Function: " << func.first << endl;
+
+            if (func.second.empty()) {
+                cout << "  No parameters" << endl;
+            } else {
+                cout << "  Parameters: ";
+                for (const auto& param : func.second) {
+                    cout << param << " ";
+                }
+                cout << endl;
+            }
+        }
+    }    
 
     //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
