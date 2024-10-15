@@ -72,7 +72,7 @@ std::vector<pair<int,void*>> split_image(void* image_data, int data_size, int n)
             }
 
             cout<<"number of channels: "<<channels<<endl; 
-
+            //GUARDA STB_WRITE_PNG_TO_MEM, RESTITUISCE LA DIMENSIONE
             // Aggiungi la tile alla lista con la sua dimensione in memoria
             tiles.push_back(make_pair(tile_size, static_cast<void*>(tile)));
         }
