@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 
+using namespace std;
+
 // Funzione per leggere un file in un buffer
 std::vector<unsigned char> read_file_to_buffer(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
@@ -28,8 +30,9 @@ std::vector<unsigned char> read_file_to_buffer(const std::string& filename) {
 }
 
 // Funzione che splitta l'immagine in n^2 parti con gestione delle righe e colonne rimanenti
-std::vector<void*> split_image(void* image_data, int data_size, int n) {
+std::vector<pair<int,void*>> split_image(void* image_data, int data_size, int n) {
     int width, height, channels;
+    
     // Carica l'immagine dal buffer
     unsigned char* img = stbi_load_from_memory(static_cast<unsigned char*>(image_data), data_size, &width, &height, &channels, 0);
     if (!img) {
@@ -41,8 +44,8 @@ std::vector<void*> split_image(void* image_data, int data_size, int n) {
     int base_tile_width = width / n;
     int base_tile_height = height / n;
 
-    // Vettore che conterrà i payload delle parti dell'immagine
-    std::vector<void*> tiles;
+    // Vettore che conterrà i payload delle parti dell'immagine e le dimensioni
+    std::vector<pair<int,void*>> tiles;
 
     for (int row = 0; row < n; ++row) {
         for (int col = 0; col < n; ++col) {
@@ -52,8 +55,11 @@ std::vector<void*> split_image(void* image_data, int data_size, int n) {
             // Calcola l'altezza della tile (gestisci le ultime righe)
             int tile_height = (row == n - 1) ? height - row * base_tile_height : base_tile_height;
 
+            // Calcola la dimensione della tile in memoria
+            int tile_size = tile_width * tile_height * channels;
+
             // Alloca memoria per la tile
-            unsigned char* tile = new unsigned char[tile_width * tile_height * channels];
+            unsigned char* tile = new unsigned char[tile_size];
 
             // Copia i pixel della tile
             for (int y = 0; y < tile_height; ++y) {
@@ -65,8 +71,10 @@ std::vector<void*> split_image(void* image_data, int data_size, int n) {
                 }
             }
 
-            // Aggiungi la tile alla lista come void*
-            tiles.push_back(static_cast<void*>(tile));
+            cout<<"number of channels: "<<channels<<endl; 
+
+            // Aggiungi la tile alla lista con la sua dimensione in memoria
+            tiles.push_back(make_pair(tile_size, static_cast<void*>(tile)));
         }
     }
 

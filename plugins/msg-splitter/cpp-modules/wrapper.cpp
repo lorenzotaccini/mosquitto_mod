@@ -225,58 +225,30 @@ public:
                 topics_map[d["inTopic"].as<string>()] = t_i;
             }
         }
-
-        for(auto i: topics_map){
-            print_topics_info(topics_map[i.first]);
-        }
     }
 
 
     void process_msg(void* payload, int payload_len, const topics_info& t_info ){
         //TEST image splitting
-        this->v_res = split_image(payload, payload_len,2);
+        this->v_res = split_image(payload, payload_len, 2);
 
     }
 
-    void print_topics_info(const topics_info& info) {
-        cout << "Format: " << info.format << endl;
-
-        // Stampa gli output topics
-        cout << "Output Topics:" << endl;
-        for (const auto& topic : info.output_topics) {
-            cout << " - " << topic << endl;
-        }
-
-        // Stampa le funzioni e i relativi parametri
-        cout << "Functions:" << endl;
-        for (const auto& func : info.functions) {
-            cout << " Function: " << func.first << endl;
-
-            if (func.second.empty()) {
-                cout << "  No parameters" << endl;
-            } else {
-                cout << "  Parameters: ";
-                for (const auto& param : func.second) {
-                    cout << param << " ";
-                }
-                cout << endl;
-            }
-        }
-    }    
 
     //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
-            //process_msg(payload,payload_len,topics_map[topic]);
-            this->v_res.push_back(payload);
-            for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
-                for(auto i: this->v_res){
-                    cout<<sizeof(i)<<endl; //WRONG: this returns size of pointer to void, always 8 bit on 64-bit system
-                    mosquitto_broker_publish_copy(clientid,o_t.c_str(),payload_len,i,qos,retain,properties);
-                }
-                cout<<"modded and published on topic "<<o_t<<endl;
-            }
+            process_msg(payload,payload_len,topics_map[topic]);
+            //this->v_res.push_back(pair(payload_len,payload));
+            //for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
+                //for(auto i: this->v_res){
+                    //cout<<sizeof(i)<<endl; //WRONG: this returns size of pointer to void, always 8 bit on 64-bit system
+                    cout<<v_res[0].first<<" "<<v_res[0].second<<endl;
+                    mosquitto_broker_publish_copy(clientid,topics_map[topic].output_topics[0].c_str(),v_res[0].first,v_res[0].second,qos,retain,properties);
+                //}
+                cout<<"modded and published on topic "<<topics_map[topic].output_topics[0].c_str()<<endl;
+            //}
             v_res.clear();
         } else{
             cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
@@ -293,7 +265,7 @@ private:
         field content of this topic in the configuration .yml file. */
     map<string,topics_info> topics_map;
 
-    vector<void*> v_res;
+    vector<pair<int,void*>> v_res;
 
 };
 
