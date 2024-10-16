@@ -165,8 +165,7 @@ public:
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
 
-
-
+        //mapping info obtained from yaml configuration document
         for(auto &d: yaml_content){
             topics_info t_i;
 
@@ -237,18 +236,17 @@ public:
 
     //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
-        
+        int cont;
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
             process_msg(payload,payload_len,topics_map[topic]);
-            //this->v_res.push_back(pair(payload_len,payload));
-            //for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
-                //for(auto i: this->v_res){
-                    //cout<<sizeof(i)<<endl; //WRONG: this returns size of pointer to void, always 8 bit on 64-bit system
-                    cout<<v_res[0].first<<" "<<v_res[0].second<<endl;
-                    mosquitto_broker_publish_copy(clientid,topics_map[topic].output_topics[0].c_str(),v_res[0].first,static_cast<char*>(v_res[0].second),qos,retain,properties);
-                //}
-                cout<<"modded and published on topic "<<topics_map[topic].output_topics[0].c_str()<<endl;
-            //}
+            for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
+                cont = 0;
+                for(auto i: this->v_res){
+                    cout<<i.first<<endl;
+                    mosquitto_broker_publish_copy(clientid,(o_t+"/"+to_string(cont)).c_str(),i.first,i.second,qos,retain,properties);
+                }
+                cout<<"modded and published on topic "<<o_t.c_str()<<endl;
+            }
             v_res.clear();
         } else{
             cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
@@ -260,7 +258,7 @@ private:
     YamlLoader yaml_loader;
     vector<YAML::Node> yaml_content;
 
-    /*topics_map: map in which each input topic (key) is associated with a file format and a list of output topics_map (value, pair).
+    /*  Map in which each input topic (key) is associated with a topics_info object (value).
         When a message is coming on a certain input topic, the module is assuming its format based on the "format"
         field content of this topic in the configuration .yml file. */
     map<string,topics_info> topics_map;

@@ -10,7 +10,7 @@ using namespace std;
 using FieldValue = std::variant<std::string, int, bool, std::vector<std::string>, std::vector<int>>;
 using Document = std::map<std::string, FieldValue>;
 
-namespace DocProcessor {
+namespace DocsElaboration {
     vector<Document> normalize_input(const string&, char*);
 };
 
