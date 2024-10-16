@@ -245,7 +245,7 @@ public:
                 //for(auto i: this->v_res){
                     //cout<<sizeof(i)<<endl; //WRONG: this returns size of pointer to void, always 8 bit on 64-bit system
                     cout<<v_res[0].first<<" "<<v_res[0].second<<endl;
-                    mosquitto_broker_publish_copy(clientid,topics_map[topic].output_topics[0].c_str(),v_res[0].first,v_res[0].second,qos,retain,properties);
+                    mosquitto_broker_publish_copy(clientid,topics_map[topic].output_topics[0].c_str(),v_res[0].first,static_cast<char*>(v_res[0].second),qos,retain,properties);
                 //}
                 cout<<"modded and published on topic "<<topics_map[topic].output_topics[0].c_str()<<endl;
             //}

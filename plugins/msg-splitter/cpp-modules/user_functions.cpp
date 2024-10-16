@@ -9,27 +9,7 @@
 
 using namespace std;
 
-// Funzione per leggere un file in un buffer
-std::vector<unsigned char> read_file_to_buffer(const std::string& filename) {
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file) {
-        std::cerr << "Errore nell'apertura del file: " << filename << std::endl;
-        return {};
-    }
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
 
-    std::vector<unsigned char> buffer(size);
-    if (file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-        std::cout << "File letto correttamente: " << filename << std::endl;
-        return buffer;
-    } else {
-        std::cerr << "Errore nella lettura del file: " << filename << std::endl;
-        return {};
-    }
-}
-
-// Funzione che splitta l'immagine in n^2 parti con gestione delle righe e colonne rimanenti
 std::vector<pair<int,void*>> split_image(void* image_data, int data_size, int n) {
     int width, height, channels;
     
@@ -55,7 +35,7 @@ std::vector<pair<int,void*>> split_image(void* image_data, int data_size, int n)
             // Calcola l'altezza della tile (gestisci le ultime righe)
             int tile_height = (row == n - 1) ? height - row * base_tile_height : base_tile_height;
 
-            // Calcola la dimensione della tile in memoria
+            // Calcola la dimensione della tile in memoria (approssimativa per ora)
             int tile_size = tile_width * tile_height * channels;
 
             // Alloca memoria per la tile
@@ -71,10 +51,20 @@ std::vector<pair<int,void*>> split_image(void* image_data, int data_size, int n)
                 }
             }
 
-            cout<<"number of channels: "<<channels<<endl; 
-            //GUARDA STB_WRITE_PNG_TO_MEM, RESTITUISCE LA DIMENSIONE
-            // Aggiungi la tile alla lista con la sua dimensione in memoria
-            tiles.push_back(make_pair(tile_size, static_cast<void*>(tile)));
+            // Utilizza stb_write_png_to_mem per ottenere la dimensione corretta
+            unsigned char* png_buffer = nullptr;
+            int png_size = 0;
+
+            // Scrivi l'immagine PNG in memoria
+            png_buffer = stbi_write_png_to_mem(tile, tile_width * channels, tile_width, tile_height, channels, &png_size);
+
+            cout<<"tile size is: "<<png_size<<endl;
+
+            // Aggiungi la tile alla lista con la sua dimensione corretta (come PNG)
+            tiles.push_back(make_pair(png_size, static_cast<void*>(png_buffer)));
+
+            // Libera la memoria della tile temporanea
+            delete[] tile;
         }
     }
 
