@@ -19,7 +19,7 @@
 
 using namespace std;
 
-using namespace DocProcessor;
+using namespace DocsElaboration;
 
 
 class YamlLoader {
