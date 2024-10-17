@@ -9,19 +9,37 @@
 #include <sstream>
 #include <cstdlib>
 #include <string.h>
+#include <variant>
 
 #include <yaml-cpp/yaml.h>
 
 #include "mosquitto_broker.h"
 #include "wrapper.h"
-#include "doc_processor.h"
+//#include "doc_processor.h"
 #include "user_functions.h"
+
+
+
+#include "tinyxml2.h"
+#include "json.hpp"
+#include <yaml-cpp/yaml.h>
+#include "rapidcsv.h"
+
+
+using namespace tinyxml2;
+using json = nlohmann::json;
 
 using namespace std;
 
-using namespace DocsElaboration;
+using FieldValue = variant<string, int, bool, vector<string>, vector<int>>;
+using Document = map<string, FieldValue>;
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+//CLASS FOR LOADING CONFIGURATION FILE
 class YamlLoader {
 public:
     YamlLoader(const string& configfile_name)
@@ -143,29 +161,118 @@ bool check_structure(const YAML::Node& yaml_content) {
 }
 };
 
-FORMAT string_to_format(const string &format_str) {
-    if (format_str == "json") return JSON;
-    if (format_str == "xml") return XML;
-    if (format_str == "yaml") return YML;
-    if (format_str == "csv") return CSV;
-    throw runtime_error("Formato non riconosciuto: " + format_str);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//DOCUMENT NORMALIZATION/PROCESSING FUNCTIONS
+
+// Virtual class to be derived when writing user-defined classes and functions 
+class DocProcessor {
+    vector<string> params;
+public:
+    virtual ~DocProcessor() = default;
+
+    DocProcessor(const vector<string>& params) : params(params) {}
+
+    virtual bool check_n_params(int n_given) const = 0;
+
+    /* This function MUST be overridden and implemented by all user-defined classes with the purpose of payload processing.
+       Input parameters:
+        - a void* pointer to the payload to be processed
+        - size in bytes of the payload
+
+       Output parameters:
+        - a vector of pairs in which first element is processed payload size expressed in bytes,
+          and second element will be a void* type pointer to the payload itself.
+
+       An instance to any derived class of this must be instanciated in Wrapper class along the others.
+    */
+    virtual vector<pair<int, void*>> process(void* payload, int payload_len) = 0;
+
+};
+
+
+class ImageSplit : public DocProcessor {
+    vector<string> params;
+public:
+
+    ImageSplit(const vector<string>& params) : DocProcessor(params) {
+        if (!check_n_params(params.size())) {
+            throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
+        }
+    }
+
+    bool check_n_params(int n_given) const override {
+        cout<<"image split has "<<n_given<<" params during init"<<endl;
+        return n_given == 1;
+    }
+
+    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+        cout<<"qui"<<endl;
+        return split_image(payload,payload_len, 2);
+    }
+};
+
+
+DocProcessor* create_processor(pair<string,vector<string>> info) {
+    DocProcessor* res_proc;
+
+    if(info.first == "imagesplit"){
+        ImageSplit f = ImageSplit(info.second);
+        cout<<"creato processore image split"<<endl;
+        res_proc = &f;
+    }
+    return res_proc;
+}
+
+vector<pair<int,void*>> executeChain(void* initialPayload, int payload_len, vector<DocProcessor*>& processors) {
+    void* current_payload = initialPayload;
+    int current_len = payload_len;
+    vector<pair<int, void*>> result;
+
+    for (auto p : processors) {
+        cout<<"before processing "<<endl;
+        result = p->process(current_payload, current_len);
+        cout<<"after processing"<<endl;
+        // Aggiorna il payload corrente con il risultato (ad esempio, il primo elemento del vettore)
+        if (!result.empty()) {
+            current_payload = result[0].second;
+        }
+    }
+
+    return result;
 }
 
 
+vector<Document> normalize_input(const string& input_format, char* data) {
+    vector<Document> result;
+
+    return result;
+    
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+//MAIN CLASS OF PLUGIN, HANDLING DATA STRUCTURES FOR MESSAGES AND PLUGIN'S CONFIGURATION, PUBLISHING FEATURES, ECC
 
 class Wrapper {
 public:
     struct topics_info {
         string format;
         vector<string> output_topics;
-        vector<pair<string,vector<string>>> functions;
+        vector<DocProcessor*> functions;
     };
     
     Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
 
-        vector<pair<string,vector<string>>> processor_info; //copy of f_vec uset to instantiate processors
         //mapping info obtained from yaml configuration document
         for(auto &d: yaml_content){
             topics_info t_i;
@@ -212,8 +319,9 @@ public:
             }
 
 
-            t_i.functions = f_vec;
-            processor_info = f_vec;
+            for(auto f: f_vec){
+                t_i.functions.push_back(create_processor(f));
+            }
 
             t_i.format = d["format"].as<string>();
 
@@ -227,15 +335,11 @@ public:
             }
         }
 
-
-        //instantiate doc processors
-        this->processors = create_processors(processor_info);
     }
 
 
     void process_msg(void* payload, int payload_len, const topics_info& t_info ){
-        
-
+        ;;
     }
 
 
@@ -243,7 +347,9 @@ public:
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         int cont;
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
-            process_msg(payload,payload_len,topics_map[topic]);
+            cout<<"calling processor chain"<<endl;
+            v_res = executeChain(payload,payload_len,topics_map[topic].functions);
+            cout<<"finished calling processor chain"<<endl;
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
                 cont = 0;
                 for(auto i: this->v_res){
@@ -270,12 +376,18 @@ private:
 
     vector<pair<int,void*>> v_res;
 
-    ImageSplit img_split;
     //other functions from user
 
     vector<DocProcessor*> processors;
 
 };
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//WRAPPER FUNCTIONS
 
 extern "C" {
     Wrapper* wrapper_new(const char *configfile_name) { return new Wrapper(configfile_name); }
