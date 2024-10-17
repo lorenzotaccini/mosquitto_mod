@@ -1,6 +1,5 @@
 #include "doc_processor.h"
 
-
 #include <iostream>
 #include <fstream>
 #include <regex>
@@ -31,17 +30,18 @@ using namespace std;
 
 namespace DocsElaboration {
 
+vector<DocProcessor*> create_processors(vector<pair<string,vector<string>>> proc_info){
+   vector<DocProcessor*> v1;
+   return v1;
+}
+
 vector<pair<int,void*>> executeChain(void* initialPayload, int payload_len, const std::vector<DocProcessor*>& processors) {
     void* current_payload = initialPayload;
     int current_len = payload_len;
     std::vector<std::pair<int, void*>> result;
 
     for (auto processor : processors) {
-        result = processor->process(current_payload, current_len);
-        // Aggiorna il payload corrente con il risultato (ad esempio, il primo elemento del vettore)
-        if (!result.empty()) {
-            current_payload = result[0].second;
-        }
+        result = processor->process(current_payload, current_len); //wrong, only for testing purposes with one processor
     }
 
     return result;
@@ -57,6 +57,9 @@ public:
     DocProcessor(const std::vector<std::string>& params) : params(params) {
         if (!check_n_params(params.size())) {
             throw std::invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
+        }
+        else {
+            this->params = params;
         }
     }
 
@@ -78,12 +81,18 @@ public:
     bool check_n_params(int n_expected, int n_given){ return n_expected == n_given ;}
 };
 
+
 class ImageSplit : public DocProcessor {
+    vector<string> params;
 public:
 
     ImageSplit(const std::vector<std::string>& params) : DocProcessor(params) {}
 
     bool check_n_params(int n_given) const override {
+        cout<<"vector of params for this derived class is:";
+        for(auto e: this->params){
+            cout<<e<<endl;
+        }
         return n_given == 1;
     }
 
@@ -91,12 +100,71 @@ public:
 
         std::vector<std::pair<int, void*>> result;
         
-        //IMAGE SPLITTING
+        
+        int width, height, channels, n = stoi((this->params)[0]);
+    
+        // Carica l'immagine dal buffer
+        unsigned char* img = stbi_load_from_memory(static_cast<unsigned char*>(payload), payload_len, &width, &height, &channels, 0);
+        if (!img) {
+            std::cerr << "Errore nel caricamento dell'immagine dal buffer" << std::endl;
+            return {};
+        }
 
-        return result;
-    }
+        // Dimensioni standard delle tile
+        int base_tile_width = width / n;
+        int base_tile_height = height / n;
+
+        // Vettore che conterrà i payload delle parti dell'immagine e le dimensioni
+        std::vector<pair<int,void*>> tiles;
+
+        for (int row = 0; row < n; ++row) {
+            for (int col = 0; col < n; ++col) {
+                // Calcola la larghezza della tile (gestisci le ultime colonne)
+                int tile_width = (col == n - 1) ? width - col * base_tile_width : base_tile_width;
+
+                // Calcola l'altezza della tile (gestisci le ultime righe)
+                int tile_height = (row == n - 1) ? height - row * base_tile_height : base_tile_height;
+
+                // Calcola la dimensione della tile in memoria (approssimativa per ora)
+                int tile_size = tile_width * tile_height * channels;
+
+                // Alloca memoria per la tile
+                unsigned char* tile = new unsigned char[tile_size];
+
+                // Copia i pixel della tile
+                for (int y = 0; y < tile_height; ++y) {
+                    for (int x = 0; x < tile_width; ++x) {
+                        for (int c = 0; c < channels; ++c) {
+                            tile[(y * tile_width + x) * channels + c] =
+                                img[((row * base_tile_height + y) * width + (col * base_tile_width + x)) * channels + c];
+                        }
+                    }
+                }
+
+                // Utilizza stb_write_png_to_mem per ottenere la dimensione corretta
+                unsigned char* png_buffer = nullptr;
+                int png_size = 0;
+
+                // Scrivi l'immagine PNG in memoria
+                png_buffer = stbi_write_png_to_mem(tile, tile_width * channels, tile_width, tile_height, channels, &png_size);
+
+                cout<<"tile size is: "<<png_size<<endl;
+
+                // Aggiungi la tile alla lista con la sua dimensione corretta (come PNG)
+                tiles.push_back(make_pair(png_size, static_cast<void*>(png_buffer)));
+
+                // Libera la memoria della tile temporanea
+                delete[] tile;
+            }
+        }
+
+        // Libera la memoria dell'immagine originale
+        stbi_image_free(img);
+
+        return tiles;
+
+        }
 };
-
 
 
 vector<Document> normalize_input(const string& input_format, char* data) {

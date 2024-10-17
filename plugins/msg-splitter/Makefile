@@ -12,7 +12,7 @@ PLUGIN_CPPFLAGS += -Ilib/img
 PLUGIN_NAME=mosquitto_msg_splitter
 
 #cpp-modules= cpp-modules/process.cpp cpp-modules/yaml_loader_full.cpp #cpp-modules/wrapper.cpp
-cpp-modules= cpp-modules/wrapper.cpp cpp-modules/doc_processor.cpp lib/xml/tinyxml2.cpp cpp-modules/user_functions.cpp
+cpp-modules= cpp-modules/wrapper.cpp cpp-modules/doc_processor.cpp lib/xml/tinyxml2.cpp cpp-modules/doc_processor.cpp
 all : binary
 
 binary : ${PLUGIN_NAME}.so

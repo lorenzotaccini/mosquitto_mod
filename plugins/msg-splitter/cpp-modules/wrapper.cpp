@@ -158,13 +158,14 @@ public:
     struct topics_info {
         string format;
         vector<string> output_topics;
-        vector<pair<string,vector<string>>> functions; // might become vector of function instances
+        vector<pair<string,vector<string>>> functions;
     };
     
     Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
         yaml_content = yaml_loader.load();
 
+        vector<pair<string,vector<string>>> processor_info; //copy of f_vec uset to instantiate processors
         //mapping info obtained from yaml configuration document
         for(auto &d: yaml_content){
             topics_info t_i;
@@ -212,6 +213,7 @@ public:
 
 
             t_i.functions = f_vec;
+            processor_info = f_vec;
 
             t_i.format = d["format"].as<string>();
 
@@ -224,12 +226,15 @@ public:
                 topics_map[d["inTopic"].as<string>()] = t_i;
             }
         }
+
+
+        //instantiate doc processors
+        this->processors = create_processors(processor_info);
     }
 
 
     void process_msg(void* payload, int payload_len, const topics_info& t_info ){
-        //TEST image splitting
-        this->v_res = split_image(payload, payload_len, 2);
+        
 
     }
 
@@ -264,6 +269,11 @@ private:
     map<string,topics_info> topics_map;
 
     vector<pair<int,void*>> v_res;
+
+    ImageSplit img_split;
+    //other functions from user
+
+    vector<DocProcessor*> processors;
 
 };
 
