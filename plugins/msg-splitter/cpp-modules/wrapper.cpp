@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <variant>
+#include <queue>
 
 #include <yaml-cpp/yaml.h>
 
@@ -215,15 +216,66 @@ public:
 };
 
 class RowsSplit : public DocProcessor{
+   vector<string> params;
+public:
 
+    RowsSplit(const vector<string>& params) : DocProcessor(params) {
+        if (!check_n_params(params.size())) {
+            throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
+        }
+    }
+
+    bool check_n_params(int n_given) const override {
+        cout<<"image split has "<<n_given<<" params during init"<<endl;
+        return n_given == 1;
+    }
+
+    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+        cout<<"qui"<<endl;
+        return split_image(payload,payload_len, 2);
+    }
 };
 
 class ColsSplit : public DocProcessor{
+   vector<string> params;
+public:
 
+    ColsSplit(const vector<string>& params) : DocProcessor(params) {
+        if (!check_n_params(params.size())) {
+            throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
+        }
+    }
+
+    bool check_n_params(int n_given) const override {
+        cout<<"image split has "<<n_given<<" params during init"<<endl;
+        return n_given == 1;
+    }
+
+    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+        cout<<"qui"<<endl;
+        return split_image(payload,payload_len, 2);
+    }
 };
 
 class nSplit : public DocProcessor{
+   vector<string> params;
+public:
 
+    nSplit(const vector<string>& params) : DocProcessor(params) {
+        if (!check_n_params(params.size())) {
+            throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
+        }
+    }
+
+    bool check_n_params(int n_given) const override {
+        cout<<"image split has "<<n_given<<" params during init"<<endl;
+        return n_given == 1;
+    }
+
+    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+        cout<<"qui"<<endl;
+        return split_image(payload,payload_len, 2);
+    }
 };
 
 DocProcessor* create_processor(pair<string,vector<string>> info) {
@@ -249,18 +301,21 @@ DocProcessor* create_processor(pair<string,vector<string>> info) {
     return res_proc;
 }
 
-vector<pair<int,void*>> executeChain(void* initialPayload, int payload_len, vector<DocProcessor*>& processors) {
-    void* current_payload = initialPayload;
-    int current_len = payload_len;
+vector<pair<int,void*>> executeChain(void* payload, int payload_len, vector<DocProcessor*>& processors) {
+    queue<pair<int,void*>> q;
+    void * cur_p;
+    int cur_len;
+
+    q.push(make_pair(payload_len,payload));
     vector<pair<int, void*>> result;
 
     for (auto p : processors) {
-        cout<<"before processing "<<endl;
-        result = p->process(current_payload, current_len);
-        cout<<"after processing"<<endl;
-        // Aggiorna il payload corrente con il risultato (ad esempio, il primo elemento del vettore)
-        if (!result.empty()) {
-            current_payload = result[0].second;
+        cur_p = q.front().second;
+        cur_len = q.front().first;
+        q.pop();
+
+        for(auto r: p->process(cur_p, cur_len)){
+            q.push(r);
         }
     }
 
