@@ -219,9 +219,9 @@ DocProcessor* create_processor(pair<string,vector<string>> info) {
     DocProcessor* res_proc;
 
     if(info.first == "imagesplit"){
-        ImageSplit f = ImageSplit(info.second);
+        auto *f = new ImageSplit(info.second);
         cout<<"creato processore image split"<<endl;
-        res_proc = &f;
+        res_proc = f;
     }
     return res_proc;
 }
@@ -347,16 +347,17 @@ public:
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         int cont;
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
-            cout<<"calling processor chain"<<endl;
+
             v_res = executeChain(payload,payload_len,topics_map[topic].functions);
-            cout<<"finished calling processor chain"<<endl;
+
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
                 cont = 0;
                 for(auto i: this->v_res){
                     cout<<i.first<<endl;
                     mosquitto_broker_publish_copy(clientid,(o_t+"/"+to_string(cont)).c_str(),i.first,i.second,qos,retain,properties);
+                    cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
+                    cont++;
                 }
-                cout<<"modded and published on topic "<<o_t.c_str()<<endl;
             }
             v_res.clear();
         } else{
