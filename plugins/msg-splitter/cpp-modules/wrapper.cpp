@@ -214,15 +214,38 @@ public:
     }
 };
 
+class RowsSplit : public DocProcessor{
+
+};
+
+class ColsSplit : public DocProcessor{
+
+};
+
+class nSplit : public DocProcessor{
+
+};
 
 DocProcessor* create_processor(pair<string,vector<string>> info) {
     DocProcessor* res_proc;
 
     if(info.first == "imagesplit"){
         auto *f = new ImageSplit(info.second);
-        cout<<"creato processore image split"<<endl;
         res_proc = f;
     }
+    if(info.first == "splitrows"){
+        auto *f = new RowsSplit(info.second);
+        res_proc = f;
+    }
+    if(info.first == "splitcols"){
+        auto *f = new ImageSplit(info.second);
+        res_proc = f;
+    }
+    if(info.first == "nsplit"){
+        auto *f = new ImageSplit(info.second);
+        res_proc = f;
+    }
+    cout<<"creato processore "<<info.first<<endl;
     return res_proc;
 }
 
