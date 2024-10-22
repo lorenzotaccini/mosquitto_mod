@@ -32,8 +32,8 @@ using json = nlohmann::json;
 
 using namespace std;
 
-using FieldValue = variant<string, int, bool, vector<string>, vector<int>>;
-using Document = map<string, FieldValue>;
+//can be void* and size, for images, or custom vector of maps, for text docs
+using Document = variant<pair<size_t,void*>, std::vector<std::map<std::string, std::string>>>;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -308,28 +308,79 @@ struct topics_info {
 };
 
 vector<pair<int,void*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
-    //input normalization
-    vector<Document> datalist = normalize_input(t_i.format,payload); 
+    cout<<"initial size is: "<<payload_len<<endl;
 
+    //input normalization
+    vector<Document> datalist; 
+    //Document is a variant like variant<pair<size_t,void*>, std::vector<std::map<std::string, std::string>>>;, e qui mi fotte
+    datalist.push_back(normalize_input(t_i.format, payload, payload_len));
 
     for(auto p: t_i.functions){
-        
+        //chain processing
     }
 
     for(int i=0; i<datalist.size(); i++){
-        datalist[i] = convert_output(t_i.format, datalist[i])
+        datalist[i] = convert_output(t_i.format, datalist[i]); // must return pair<void*, size_t>
+
     }
-    return datalist;
+    return datalist; 
 }
 
 
-vector<Document> normalize_input(const string& input_format, void* data) {
-    vector<Document> result;
+Document normalize_input(const string& input_format, void* data, size_t data_size) {
+    Document result;
+
+    if(input_format == "csv"){
+        std::stringstream csvStream(std::string(static_cast<char*>(data), data_size));
+        rapidcsv::Document doc(csvStream, rapidcsv::LabelParams(0, -1)); //assuming only column indices
+
+        std::vector<std::map<std::string, std::string>> normalizedData;
+
+        // Ottieni i nomi delle colonne (intestazioni)
+        std::vector<std::string> columnNames = doc.GetColumnNames();
+
+        // Itera sulle righe e costruisci la mappa per ogni riga
+        for (size_t rowIndex = 0; rowIndex < doc.GetRowCount(); ++rowIndex) {
+            std::map<std::string, std::string> rowMap;
+
+            for (const auto& colName : columnNames) {
+                std::string cellValue = doc.GetCell<std::string>(colName, rowIndex);
+                rowMap[colName] = cellValue;  // Popola la mappa con colonna->valore
+            }
+
+            normalizedData.push_back(rowMap);  // Aggiungi la riga normalizzata
+        }
+        result = normalizedData;
+    } else if (input_format == "png"){
+        return pair<size_t, void*>(data_size, data); //do nothing
+    }
 
     return result;
     
 }
 
+pair<size_t, void*> convert_output(const string& output_format, Document d){
+    if(output_format == "csv"){
+        // Ricostruzione del CSV dopo l'elaborazione
+        std::ostringstream newCsvStream;
+        for (const auto& rowMap : get<std::vector<std::map<std::string, std::string>>>(d)) {
+            for (const auto& [key, value] : rowMap) {
+                newCsvStream << value << ",";
+            }
+            newCsvStream.seekp(-1, std::ios_base::end); // Rimuovi l'ultimo ","
+            newCsvStream << "\n";  // Aggiunge un newline tra le righe
+        }
+
+        // Convertire di nuovo la stringa elaborata in un payload void*
+        std::string newCsv = newCsvStream.str();
+        size_t newSize = newCsv.size();
+        char* newPayload = new char[newSize];
+        std::memcpy(newPayload, newCsv.c_str(), newSize);
+
+        // Restituire il nuovo payload insieme alla sua dimensione
+        return pair<size_t, void*>(newSize, static_cast<void*>(newPayload));
+    }
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

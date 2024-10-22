@@ -5,11 +5,6 @@
 #include <cstring>  // Per memcpy
 #include "rapidcsv.h"  // Include the rapidcsv library
 
-// Funzione per convertire void* in std::string
-std::string voidPtrToString(void* payload, size_t length) {
-    return std::string(static_cast<char*>(payload), length);
-}
-
 // Funzione per normalizzare il CSV e restituire un pair <void*, size_t>
 std::pair<void*, size_t> processCSVPayload(void* payload, size_t length, const std::string& format) {
     if (format != "csv") {
@@ -18,7 +13,7 @@ std::pair<void*, size_t> processCSVPayload(void* payload, size_t length, const s
     }
 
     // Convertire il payload in una stringa
-    std::string csvData = voidPtrToString(payload, length);
+    std::string csvData = std::string(static_cast<char*>(payload), length);
 
     // Caricare il CSV da una stringa usando rapidcsv
     std::stringstream csvStream(csvData);
