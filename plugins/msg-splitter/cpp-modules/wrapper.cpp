@@ -257,11 +257,11 @@ public:
     }
 };
 
-class nSplit : public DocProcessor{
+class ExtractCols : public DocProcessor{
    vector<string> params;
 public:
 
-    nSplit(const vector<string>& params) : DocProcessor(params) {
+    ExtractCols(const vector<string>& params) : DocProcessor(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
@@ -290,40 +290,40 @@ DocProcessor* create_processor(pair<string,vector<string>> info) {
         res_proc = f;
     }
     if(info.first == "splitcols"){
-        auto *f = new ImageSplit(info.second);
+        auto *f = new ColsSplit(info.second);
         res_proc = f;
     }
-    if(info.first == "nsplit"){
-        auto *f = new ImageSplit(info.second);
+    if(info.first == "extractcols"){
+        auto *f = new ExtractCols(info.second);
         res_proc = f;
     }
     cout<<"creato processore "<<info.first<<endl;
     return res_proc;
 }
 
-vector<pair<int,void*>> executeChain(void* payload, int payload_len, vector<DocProcessor*>& processors) {
-    queue<pair<int,void*>> q;
-    void * cur_p;
-    int cur_len;
+struct topics_info {
+    string format;
+    vector<string> output_topics;
+    vector<DocProcessor*> functions;
+};
 
-    q.push(make_pair(payload_len,payload));
-    vector<pair<int, void*>> result;
+vector<pair<int,void*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
+    //input normalization
+    vector<Document> datalist = normalize_input(t_i.format,payload); 
 
-    for (auto p : processors) {
-        cur_p = q.front().second;
-        cur_len = q.front().first;
-        q.pop();
 
-        for(auto r: p->process(cur_p, cur_len)){
-            q.push(r);
-        }
+    for(auto p: t_i.functions){
+        
     }
 
-    return result;
+    for(int i=0; i<datalist.size(); i++){
+        datalist[i] = convert_output(t_i.format, datalist[i])
+    }
+    return datalist;
 }
 
 
-vector<Document> normalize_input(const string& input_format, char* data) {
+vector<Document> normalize_input(const string& input_format, void* data) {
     vector<Document> result;
 
     return result;
@@ -341,11 +341,6 @@ vector<Document> normalize_input(const string& input_format, char* data) {
 
 class Wrapper {
 public:
-    struct topics_info {
-        string format;
-        vector<string> output_topics;
-        vector<DocProcessor*> functions;
-    };
     
     Wrapper(const string& configfile_name): yaml_loader(configfile_name) {
         cout << "Wrapper initialized with config file: " << configfile_name << endl;
@@ -426,7 +421,7 @@ public:
         int cont;
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
 
-            v_res = executeChain(payload,payload_len,topics_map[topic].functions);
+            v_res = executeChain(payload,payload_len,topics_map[topic]);
 
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
                 cont = 0;
