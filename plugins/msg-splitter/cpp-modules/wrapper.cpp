@@ -189,7 +189,7 @@ public:
 
        An instance to any derived class of this must be instanciated in Wrapper class along the others.
     */
-    virtual vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) = 0;
+    virtual vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) = 0;
 
 };
 
@@ -209,7 +209,7 @@ public:
         return n_given == 1;
     }
 
-    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
         cout<<"qui"<<endl;
         return split_image(payload,payload_len, 2);
     }
@@ -230,7 +230,7 @@ public:
         return n_given == 1;
     }
 
-    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
         cout<<"qui"<<endl;
         return split_image(payload,payload_len, 2);
     }
@@ -251,7 +251,7 @@ public:
         return n_given == 1;
     }
 
-    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
         cout<<"qui"<<endl;
         return split_image(payload,payload_len, 2);
     }
@@ -272,7 +272,7 @@ public:
         return n_given > 0;
     }
 
-    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
 
         std::stringstream csvStream(string(reinterpret_cast<const char*>(payload), payload_len));
         rapidcsv::Document doc(csvStream, rapidcsv::LabelParams(0, -1));  // Con intestazioni
@@ -281,32 +281,28 @@ public:
 
         std::vector<std::string> columnNames = doc.GetColumnNames();
 
-        // Scrivi le intestazioni delle colonne scelte nel nuovo CSV
         cout<<"params are "<<params.size()<<" first is"<<params[0]<<endl;
         for (size_t i = 0; i < params.size(); ++i) {
             if (i > 0) {
                 outputCsvStream << ",";
             }
-            outputCsvStream << columnNames[stoi(params[i])];  // Nome colonna
+            outputCsvStream << columnNames[stoi(params[i])];  
         }
-        outputCsvStream << "\n";  // Fine delle intestazioni
+        outputCsvStream << "\n";  
 
-        // Iterare sulle righe del CSV originale
         for (size_t rowIndex = 0; rowIndex < doc.GetRowCount(); ++rowIndex) {
             for (size_t i = 0; i < params.size(); ++i) {
                 if (i > 0) {
-                    outputCsvStream << ",";  // Separatore di colonne
+                    outputCsvStream << ","; 
                 }
-                // Aggiungere i valori delle colonne selezionate
+                
                 outputCsvStream << doc.GetCell<std::string>(columnNames[stoi(params[i])], rowIndex);
             }
-            outputCsvStream << "\n";  // Fine della riga
+            outputCsvStream << "\n"; 
         }
 
-        // Convertire il CSV generato in una stringa
         std::string outputCsvData = outputCsvStream.str();
 
-        // Alloca memoria per il nuovo payload unsigned char*
         size_t dataSize = outputCsvData.size();
         unsigned char* outputPayload = new unsigned char[dataSize];
         std::memcpy(outputPayload, outputCsvData.c_str(), dataSize);
@@ -347,8 +343,27 @@ struct topics_info {
 };
 
 vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
-    cout<<"initial size is: "<<payload_len<<endl;
-    return t_i.functions[0]->process(static_cast<unsigned char*>(payload),payload_len);
+
+    vector<pair<int, unsigned char*>> datalist;
+    vector<pair<int, unsigned char*>> proc_result;
+    vector<pair<int, unsigned char*>> single_res;
+
+    datalist.push_back(pair<int, unsigned char*>(payload_len, static_cast<unsigned char*>(payload)));
+
+    for(auto p: t_i.functions){
+        for(auto d: datalist){
+            single_res = p->process(d.first, d.second);
+            for(auto s: single_res){
+                proc_result.push_back(s);
+            }
+        }
+
+        datalist = proc_result; //after last iteration, datalist will contain the result
+        proc_result.clear();
+    }
+
+    return datalist;
+
 }
 
 
@@ -447,7 +462,6 @@ public:
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
                 cont = 0;
                 for(auto i: this->v_res){
-                    cout<<i.first<<endl;
                     mosquitto_broker_publish_copy(clientid,(o_t+"/"+to_string(cont)).c_str(),i.first,i.second,qos,retain,properties);
                     cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
                     cont++;
