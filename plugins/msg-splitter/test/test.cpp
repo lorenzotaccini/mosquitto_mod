@@ -28,7 +28,7 @@ std::vector<unsigned char> read_file_to_buffer(const std::string& filename) {
 }
 
 // Funzione che splitta l'immagine in n^2 parti con gestione delle righe e colonne rimanenti
-std::vector<void*> split_image(void* image_data, int data_size, int n, int& width, int& height, int& channels) {
+std::vector<unsigned char*> split_image(void* image_data, int data_size, int n, int& width, int& height, int& channels) {
     // Carica l'immagine dal buffer
     unsigned char* img = stbi_load_from_memory(static_cast<unsigned char*>(image_data), data_size, &width, &height, &channels, 0);
     if (!img) {
@@ -41,7 +41,7 @@ std::vector<void*> split_image(void* image_data, int data_size, int n, int& widt
     int base_tile_height = height / n;
 
     // Vettore che conterrà i payload delle parti dell'immagine
-    std::vector<void*> tiles;
+    std::vector<unsigned char*> tiles;
 
     for (int row = 0; row < n; ++row) {
         for (int col = 0; col < n; ++col) {
@@ -65,7 +65,7 @@ std::vector<void*> split_image(void* image_data, int data_size, int n, int& widt
             }
 
             // Aggiungi la tile alla lista come void*
-            tiles.push_back(static_cast<void*>(tile));
+            tiles.push_back(static_cast<unsigned char*>(tile));
         }
     }
 
@@ -93,7 +93,7 @@ int main() {
     int n = 2;  // Dividi in 3^2 = 9 parti
 
     // Chiama la funzione per splittare l'immagine
-    std::vector<void*> tiles = split_image(payload, data_size, n, width, height, channels);
+    std::vector<unsigned char*> tiles = split_image(payload, data_size, n, width, height, channels);
 
     if (tiles.empty()) {
         std::cerr << "Errore nella divisione dell'immagine." << std::endl;

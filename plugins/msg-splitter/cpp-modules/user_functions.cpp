@@ -10,11 +10,11 @@
 #include "user_functions.h"
 
 
-vector<pair<int,void*>> split_image(void* image_data, int data_size, int n) {
+vector<pair<int,unsigned char*>> split_image(unsigned char* image_data, int data_size, int n) {
     int width, height, channels;
     
     // Carica l'immagine dal buffer
-    unsigned char* img = stbi_load_from_memory(static_cast<unsigned char*>(image_data), data_size, &width, &height, &channels, 0);
+    unsigned char* img = stbi_load_from_memory(image_data, data_size, &width, &height, &channels, 0);
     if (!img) {
         cerr << "Errore nel caricamento dell'immagine dal buffer" << endl;
         return {};
@@ -25,7 +25,7 @@ vector<pair<int,void*>> split_image(void* image_data, int data_size, int n) {
     int base_tile_height = height / n;
 
     // Vettore che conterrà i payload delle parti dell'immagine e le dimensioni
-    vector<pair<int,void*>> tiles;
+    vector<pair<int,unsigned char*>> tiles;
 
     for (int row = 0; row < n; ++row) {
         for (int col = 0; col < n; ++col) {
@@ -61,8 +61,8 @@ vector<pair<int,void*>> split_image(void* image_data, int data_size, int n) {
             cout<<"tile size is: "<<png_size<<endl;
 
             // Aggiungi la tile alla lista con la sua dimensione corretta (come PNG)
-            tiles.push_back(make_pair(png_size, static_cast<void*>(png_buffer)));
-
+            //tiles.push_back(make_pair(png_size, static_cast<void*>(png_buffer)));
+            tiles.push_back(make_pair(png_size, png_buffer));
             // Libera la memoria della tile temporanea
             delete[] tile;
         }

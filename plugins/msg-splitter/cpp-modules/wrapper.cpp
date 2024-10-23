@@ -32,8 +32,8 @@ using json = nlohmann::json;
 
 using namespace std;
 
-//can be void* and size, for images, or custom vector of maps, for text docs
-using Document = variant<pair<size_t,void*>, std::vector<std::map<std::string, std::string>>>;
+using TextDocument = std::vector<std::map<std::string, std::string>>;
+using RawDocument = pair<size_t, unsigned char*>;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,7 +189,7 @@ public:
 
        An instance to any derived class of this must be instanciated in Wrapper class along the others.
     */
-    virtual vector<pair<int, void*>> process(void* payload, int payload_len) = 0;
+    virtual vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) = 0;
 
 };
 
@@ -209,17 +209,17 @@ public:
         return n_given == 1;
     }
 
-    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
         cout<<"qui"<<endl;
         return split_image(payload,payload_len, 2);
     }
 };
 
-class RowsSplit : public DocProcessor{
+class CsvRowsSplit : public DocProcessor{
    vector<string> params;
 public:
 
-    RowsSplit(const vector<string>& params) : DocProcessor(params) {
+    CsvRowsSplit(const vector<string>& params) : DocProcessor(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
@@ -230,17 +230,17 @@ public:
         return n_given == 1;
     }
 
-    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
         cout<<"qui"<<endl;
         return split_image(payload,payload_len, 2);
     }
 };
 
-class ColsSplit : public DocProcessor{
+class CsvColsSplit : public DocProcessor{
    vector<string> params;
 public:
 
-    ColsSplit(const vector<string>& params) : DocProcessor(params) {
+    CsvColsSplit(const vector<string>& params) : DocProcessor(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
@@ -251,30 +251,69 @@ public:
         return n_given == 1;
     }
 
-    vector<pair<int, void*>> process(void* payload, int payload_len) override {
+    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
         cout<<"qui"<<endl;
         return split_image(payload,payload_len, 2);
     }
 };
 
-class ExtractCols : public DocProcessor{
+class CsvExtractCols : public DocProcessor{
    vector<string> params;
 public:
 
-    ExtractCols(const vector<string>& params) : DocProcessor(params) {
+    CsvExtractCols(const vector<string>& params) : DocProcessor(params), params(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
     }
 
     bool check_n_params(int n_given) const override {
-        cout<<"image split has "<<n_given<<" params during init"<<endl;
-        return n_given == 1;
+        cout<<"extract csv cols has "<<n_given<<" params during init"<<endl;
+        return n_given > 0;
     }
 
-    vector<pair<int, void*>> process(void* payload, int payload_len) override {
-        cout<<"qui"<<endl;
-        return split_image(payload,payload_len, 2);
+    vector<pair<int, unsigned char*>> process(unsigned char* payload, int payload_len) override {
+
+        std::stringstream csvStream(string(reinterpret_cast<const char*>(payload), payload_len));
+        rapidcsv::Document doc(csvStream, rapidcsv::LabelParams(0, -1));  // Con intestazioni
+
+        std::ostringstream outputCsvStream;
+
+        std::vector<std::string> columnNames = doc.GetColumnNames();
+
+        // Scrivi le intestazioni delle colonne scelte nel nuovo CSV
+        cout<<"params are "<<params.size()<<" first is"<<params[0]<<endl;
+        for (size_t i = 0; i < params.size(); ++i) {
+            if (i > 0) {
+                outputCsvStream << ",";
+            }
+            outputCsvStream << columnNames[stoi(params[i])];  // Nome colonna
+        }
+        outputCsvStream << "\n";  // Fine delle intestazioni
+
+        // Iterare sulle righe del CSV originale
+        for (size_t rowIndex = 0; rowIndex < doc.GetRowCount(); ++rowIndex) {
+            for (size_t i = 0; i < params.size(); ++i) {
+                if (i > 0) {
+                    outputCsvStream << ",";  // Separatore di colonne
+                }
+                // Aggiungere i valori delle colonne selezionate
+                outputCsvStream << doc.GetCell<std::string>(columnNames[stoi(params[i])], rowIndex);
+            }
+            outputCsvStream << "\n";  // Fine della riga
+        }
+
+        // Convertire il CSV generato in una stringa
+        std::string outputCsvData = outputCsvStream.str();
+
+        // Alloca memoria per il nuovo payload unsigned char*
+        size_t dataSize = outputCsvData.size();
+        unsigned char* outputPayload = new unsigned char[dataSize];
+        std::memcpy(outputPayload, outputCsvData.c_str(), dataSize);
+
+        cout<<outputPayload<<endl;
+
+        return {pair<size_t, unsigned char*>(dataSize, outputPayload)};
     }
 };
 
@@ -286,15 +325,15 @@ DocProcessor* create_processor(pair<string,vector<string>> info) {
         res_proc = f;
     }
     if(info.first == "splitrows"){
-        auto *f = new RowsSplit(info.second);
+        auto *f = new CsvRowsSplit(info.second);
         res_proc = f;
     }
     if(info.first == "splitcols"){
-        auto *f = new ColsSplit(info.second);
+        auto *f = new CsvColsSplit(info.second);
         res_proc = f;
     }
     if(info.first == "extractcols"){
-        auto *f = new ExtractCols(info.second);
+        auto *f = new CsvExtractCols(info.second);
         res_proc = f;
     }
     cout<<"creato processore "<<info.first<<endl;
@@ -307,80 +346,11 @@ struct topics_info {
     vector<DocProcessor*> functions;
 };
 
-vector<pair<int,void*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
+vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
     cout<<"initial size is: "<<payload_len<<endl;
-
-    //input normalization
-    vector<Document> datalist; 
-    //Document is a variant like variant<pair<size_t,void*>, std::vector<std::map<std::string, std::string>>>;, e qui mi fotte
-    datalist.push_back(normalize_input(t_i.format, payload, payload_len));
-
-    for(auto p: t_i.functions){
-        //chain processing
-    }
-
-    for(int i=0; i<datalist.size(); i++){
-        datalist[i] = convert_output(t_i.format, datalist[i]); // must return pair<void*, size_t>
-
-    }
-    return datalist; 
+    return t_i.functions[0]->process(static_cast<unsigned char*>(payload),payload_len);
 }
 
-
-Document normalize_input(const string& input_format, void* data, size_t data_size) {
-    Document result;
-
-    if(input_format == "csv"){
-        std::stringstream csvStream(std::string(static_cast<char*>(data), data_size));
-        rapidcsv::Document doc(csvStream, rapidcsv::LabelParams(0, -1)); //assuming only column indices
-
-        std::vector<std::map<std::string, std::string>> normalizedData;
-
-        // Ottieni i nomi delle colonne (intestazioni)
-        std::vector<std::string> columnNames = doc.GetColumnNames();
-
-        // Itera sulle righe e costruisci la mappa per ogni riga
-        for (size_t rowIndex = 0; rowIndex < doc.GetRowCount(); ++rowIndex) {
-            std::map<std::string, std::string> rowMap;
-
-            for (const auto& colName : columnNames) {
-                std::string cellValue = doc.GetCell<std::string>(colName, rowIndex);
-                rowMap[colName] = cellValue;  // Popola la mappa con colonna->valore
-            }
-
-            normalizedData.push_back(rowMap);  // Aggiungi la riga normalizzata
-        }
-        result = normalizedData;
-    } else if (input_format == "png"){
-        return pair<size_t, void*>(data_size, data); //do nothing
-    }
-
-    return result;
-    
-}
-
-pair<size_t, void*> convert_output(const string& output_format, Document d){
-    if(output_format == "csv"){
-        // Ricostruzione del CSV dopo l'elaborazione
-        std::ostringstream newCsvStream;
-        for (const auto& rowMap : get<std::vector<std::map<std::string, std::string>>>(d)) {
-            for (const auto& [key, value] : rowMap) {
-                newCsvStream << value << ",";
-            }
-            newCsvStream.seekp(-1, std::ios_base::end); // Rimuovi l'ultimo ","
-            newCsvStream << "\n";  // Aggiunge un newline tra le righe
-        }
-
-        // Convertire di nuovo la stringa elaborata in un payload void*
-        std::string newCsv = newCsvStream.str();
-        size_t newSize = newCsv.size();
-        char* newPayload = new char[newSize];
-        std::memcpy(newPayload, newCsv.c_str(), newSize);
-
-        // Restituire il nuovo payload insieme alla sua dimensione
-        return pair<size_t, void*>(newSize, static_cast<void*>(newPayload));
-    }
-}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -499,7 +469,7 @@ private:
         field content of this topic in the configuration .yml file. */
     map<string,topics_info> topics_map;
 
-    vector<pair<int,void*>> v_res;
+    vector<pair<int,unsigned char*>> v_res;
 
     //other functions from user
 
