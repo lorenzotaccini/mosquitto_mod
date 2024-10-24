@@ -32,7 +32,6 @@ using json = nlohmann::json;
 
 using namespace std;
 
-using TextDocument = std::vector<std::map<std::string, std::string>>;
 using RawDocument = pair<size_t, unsigned char*>;
 
 
@@ -198,7 +197,7 @@ class ImageSplit : public DocProcessor {
     vector<string> params;
 public:
 
-    ImageSplit(const vector<string>& params) : DocProcessor(params) {
+    ImageSplit(const vector<string>& params) : DocProcessor(params), params(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
@@ -211,7 +210,7 @@ public:
 
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
         cout<<"qui"<<endl;
-        return split_image(payload,payload_len, 2);
+        return split_image(payload,payload_len, stoi(params[0]));
     }
 };
 
@@ -219,7 +218,7 @@ class CsvRowsSplit : public DocProcessor{
    vector<string> params;
 public:
 
-    CsvRowsSplit(const vector<string>& params) : DocProcessor(params) {
+    CsvRowsSplit(const vector<string>& params) : DocProcessor(params), params(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
@@ -231,8 +230,53 @@ public:
     }
 
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
-        cout<<"qui"<<endl;
-        return split_image(payload,payload_len, 2);
+        int n = stoi(params[0]);
+        
+        std::stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
+        rapidcsv::Document doc(csv_stream, rapidcsv::LabelParams(0, -1));
+
+        std::vector<std::string> column_names = doc.GetColumnNames();
+        size_t total_rows = doc.GetRowCount();
+        size_t base_part_size = total_rows / n;
+        size_t remainder = total_rows % n;
+
+        std::vector<std::pair<int, unsigned char*>> split_csv_parts;
+        size_t row_index = 0;
+
+        for (int part = 0; part < n; ++part) {
+            size_t rows_in_this_part = base_part_size + (part == n - 1 ? remainder : 0);
+            std::ostringstream part_stream;
+
+            // Aggiungi i nomi delle colonne in ogni parte
+            for (size_t i = 0; i < column_names.size(); ++i) {
+                if (i > 0) {
+                    part_stream << ",";
+                }
+                part_stream << column_names[i];
+            }
+            part_stream << "\n";
+
+            // Aggiungi le righe corrispondenti a questa parte
+            for (size_t i = 0; i < rows_in_this_part; ++i) {
+                for (size_t col_index = 0; col_index < column_names.size(); ++col_index) {
+                    if (col_index > 0) {
+                        part_stream << ",";
+                    }
+                    part_stream << doc.GetCell<std::string>(column_names[col_index], row_index + i);
+                }
+                part_stream << "\n";
+            }
+
+            std::string part_data = part_stream.str();
+            size_t part_size = part_data.size();
+            unsigned char* part_payload = new unsigned char[part_size];
+            std::memcpy(part_payload, part_data.c_str(), part_size);
+
+            split_csv_parts.push_back({static_cast<int>(part_size), part_payload});
+            row_index += rows_in_this_part;
+        }
+
+        return split_csv_parts;
     }
 };
 
@@ -240,7 +284,7 @@ class CsvColsSplit : public DocProcessor{
    vector<string> params;
 public:
 
-    CsvColsSplit(const vector<string>& params) : DocProcessor(params) {
+    CsvColsSplit(const vector<string>& params) : DocProcessor(params), params(params) {
         if (!check_n_params(params.size())) {
             throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
         }
@@ -252,8 +296,51 @@ public:
     }
 
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
-        cout<<"qui"<<endl;
-        return split_image(payload,payload_len, 2);
+        int n = stoi(params[0]);
+                
+        std::stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
+        rapidcsv::Document doc(csv_stream, rapidcsv::LabelParams(0, -1));
+
+        std::vector<std::string> column_names = doc.GetColumnNames();
+        size_t total_columns = column_names.size();
+        size_t base_part_size = total_columns / n;
+        size_t remainder = total_columns % n;
+
+        std::vector<std::pair<int, unsigned char*>> split_csv_parts;
+        size_t column_index = 0;
+                
+        for (int part = 0; part < n; ++part) {
+            size_t current_columns = base_part_size + (part == n - 1 ? remainder : 0);
+            std::ostringstream part_stream;
+
+            for (size_t i = 0; i < current_columns; ++i) {
+                if (i > 0) {
+                    part_stream << ",";
+                }
+                part_stream << column_names[column_index + i];
+            }
+            part_stream << "\n";
+
+            for (size_t row_index = 0; row_index < doc.GetRowCount(); ++row_index) {
+                for (size_t i = 0; i < current_columns; ++i) {
+                    if (i > 0) {
+                        part_stream << ",";
+                    }
+                    part_stream << doc.GetCell<std::string>(column_names[column_index + i], row_index);
+                }
+                part_stream << "\n";
+            }
+
+            std::string part_data = part_stream.str();
+            size_t part_size = part_data.size();
+            unsigned char* part_payload = new unsigned char[part_size];
+            std::memcpy(part_payload, part_data.c_str(), part_size);
+
+            split_csv_parts.push_back({static_cast<int>(part_size), part_payload});
+            column_index += current_columns;
+        }
+
+        return split_csv_parts;
     }
 };
 
