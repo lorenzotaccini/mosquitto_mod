@@ -209,7 +209,6 @@ public:
     }
 
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
-        cout<<"qui"<<endl;
         return split_image(payload,payload_len, stoi(params[0]));
     }
 };
@@ -225,7 +224,7 @@ public:
     }
 
     bool check_n_params(int n_given) const override {
-        cout<<"image split has "<<n_given<<" params during init"<<endl;
+        cout<<"csv row split has "<<n_given<<" params during init"<<endl;
         return n_given == 1;
     }
 
@@ -291,7 +290,7 @@ public:
     }
 
     bool check_n_params(int n_given) const override {
-        cout<<"image split has "<<n_given<<" params during init"<<endl;
+        cout<<"csv cols split split has "<<n_given<<" params during init"<<endl;
         return n_given == 1;
     }
 
@@ -419,7 +418,7 @@ DocProcessor* create_processor(pair<string,vector<string>> info) {
         auto *f = new CsvExtractCols(info.second);
         res_proc = f;
     }
-    cout<<"creato processore "<<info.first<<endl;
+    cout<<"created processor: "<<info.first<<endl;
     return res_proc;
 }
 
@@ -531,11 +530,6 @@ public:
             }
         }
 
-    }
-
-
-    void process_msg(void* payload, int payload_len, const topics_info& t_info ){
-        ;;
     }
 
 
