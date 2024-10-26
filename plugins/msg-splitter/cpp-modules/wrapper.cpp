@@ -48,12 +48,12 @@ public:
     vector<YAML::Node> load() {
         vector<YAML::Node> valid_docs;
         try {
-            ifstream file(configfile_name);
+            string path = filesystem::current_path();
+            ifstream file(path + "/" + configfile_name);
             if (!file.is_open()) {
                 throw runtime_error("Config file not found");
-                cout<<"ciao";
             }
-            cout<< "Loading configuration file: "<<configfile_name.c_str()<<endl;
+            cout<< "Loading configuration file: "<<path + "/" + configfile_name<<endl;
             vector<YAML::Node> docs = YAML::LoadAll(file);
 
             for (size_t i = 0; i < docs.size(); ++i) {
