@@ -51,6 +51,7 @@ public:
             ifstream file(configfile_name);
             if (!file.is_open()) {
                 throw runtime_error("Config file not found");
+                cout<<"ciao";
             }
             cout<< "Loading configuration file: "<<configfile_name.c_str()<<endl;
             vector<YAML::Node> docs = YAML::LoadAll(file);
