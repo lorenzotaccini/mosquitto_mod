@@ -11,6 +11,7 @@
 #include <string.h>
 #include <variant>
 #include <queue>
+#include <chrono>
 
 #include <yaml-cpp/yaml.h>
 
@@ -231,20 +232,20 @@ public:
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
         int n = stoi(params[0]);
         
-        std::stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
+        stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
         rapidcsv::Document doc(csv_stream, rapidcsv::LabelParams(0, -1));
 
-        std::vector<std::string> column_names = doc.GetColumnNames();
+        vector<string> column_names = doc.GetColumnNames();
         size_t total_rows = doc.GetRowCount();
         size_t base_part_size = total_rows / n;
         size_t remainder = total_rows % n;
 
-        std::vector<std::pair<int, unsigned char*>> split_csv_parts;
+        vector<pair<int, unsigned char*>> split_csv_parts;
         size_t row_index = 0;
 
         for (int part = 0; part < n; ++part) {
             size_t rows_in_this_part = base_part_size + (part == n - 1 ? remainder : 0);
-            std::ostringstream part_stream;
+            ostringstream part_stream;
 
             // Aggiungi i nomi delle colonne in ogni parte
             for (size_t i = 0; i < column_names.size(); ++i) {
@@ -261,15 +262,15 @@ public:
                     if (col_index > 0) {
                         part_stream << ",";
                     }
-                    part_stream << doc.GetCell<std::string>(column_names[col_index], row_index + i);
+                    part_stream << doc.GetCell<string>(column_names[col_index], row_index + i);
                 }
                 part_stream << "\n";
             }
 
-            std::string part_data = part_stream.str();
+            string part_data = part_stream.str();
             size_t part_size = part_data.size();
             unsigned char* part_payload = new unsigned char[part_size];
-            std::memcpy(part_payload, part_data.c_str(), part_size);
+            memcpy(part_payload, part_data.c_str(), part_size);
 
             split_csv_parts.push_back({static_cast<int>(part_size), part_payload});
             row_index += rows_in_this_part;
@@ -297,20 +298,20 @@ public:
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
         int n = stoi(params[0]);
                 
-        std::stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
+        stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
         rapidcsv::Document doc(csv_stream, rapidcsv::LabelParams(0, -1));
 
-        std::vector<std::string> column_names = doc.GetColumnNames();
+        vector<string> column_names = doc.GetColumnNames();
         size_t total_columns = column_names.size();
         size_t base_part_size = total_columns / n;
         size_t remainder = total_columns % n;
 
-        std::vector<std::pair<int, unsigned char*>> split_csv_parts;
+        vector<pair<int, unsigned char*>> split_csv_parts;
         size_t column_index = 0;
                 
         for (int part = 0; part < n; ++part) {
             size_t current_columns = base_part_size + (part == n - 1 ? remainder : 0);
-            std::ostringstream part_stream;
+            ostringstream part_stream;
 
             for (size_t i = 0; i < current_columns; ++i) {
                 if (i > 0) {
@@ -325,15 +326,15 @@ public:
                     if (i > 0) {
                         part_stream << ",";
                     }
-                    part_stream << doc.GetCell<std::string>(column_names[column_index + i], row_index);
+                    part_stream << doc.GetCell<string>(column_names[column_index + i], row_index);
                 }
                 part_stream << "\n";
             }
 
-            std::string part_data = part_stream.str();
+            string part_data = part_stream.str();
             size_t part_size = part_data.size();
             unsigned char* part_payload = new unsigned char[part_size];
-            std::memcpy(part_payload, part_data.c_str(), part_size);
+            memcpy(part_payload, part_data.c_str(), part_size);
 
             split_csv_parts.push_back({static_cast<int>(part_size), part_payload});
             column_index += current_columns;
@@ -360,14 +361,13 @@ public:
 
     vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
 
-        std::stringstream csvStream(string(reinterpret_cast<const char*>(payload), payload_len));
+        stringstream csvStream(string(reinterpret_cast<const char*>(payload), payload_len));
         rapidcsv::Document doc(csvStream, rapidcsv::LabelParams(0, -1));  // Con intestazioni
 
-        std::ostringstream outputCsvStream;
+        ostringstream outputCsvStream;
 
-        std::vector<std::string> columnNames = doc.GetColumnNames();
+        vector<string> columnNames = doc.GetColumnNames();
 
-        cout<<"params are "<<params.size()<<" first is"<<params[0]<<endl;
         for (size_t i = 0; i < params.size(); ++i) {
             if (i > 0) {
                 outputCsvStream << ",";
@@ -382,18 +382,18 @@ public:
                     outputCsvStream << ","; 
                 }
                 
-                outputCsvStream << doc.GetCell<std::string>(columnNames[stoi(params[i])], rowIndex);
+                outputCsvStream << doc.GetCell<string>(columnNames[stoi(params[i])], rowIndex);
             }
             outputCsvStream << "\n"; 
         }
 
-        std::string outputCsvData = outputCsvStream.str();
+        string outputCsvData = outputCsvStream.str();
 
         size_t dataSize = outputCsvData.size();
         unsigned char* outputPayload = new unsigned char[dataSize];
-        std::memcpy(outputPayload, outputCsvData.c_str(), dataSize);
+        memcpy(outputPayload, outputCsvData.c_str(), dataSize);
 
-        cout<<outputPayload<<endl;
+        //cout<<outputPayload<<endl;
 
         return {pair<size_t, unsigned char*>(dataSize, outputPayload)};
     }
@@ -429,7 +429,7 @@ struct topics_info {
 };
 
 vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
-
+    
     vector<pair<int, unsigned char*>> datalist;
     vector<pair<int, unsigned char*>> proc_result;
     vector<pair<int, unsigned char*>> single_res;
@@ -447,7 +447,7 @@ vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, to
         datalist = proc_result; //after last iteration, datalist will contain the result
         proc_result.clear();
     }
-
+    
     return datalist;
 
 }
@@ -538,13 +538,20 @@ public:
         int cont;
         if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
 
+            auto start = chrono::high_resolution_clock::now(); //starting processing time calculation for this payload
             v_res = executeChain(payload,payload_len,topics_map[topic]);
+            auto end = std::chrono::high_resolution_clock::now(); //stopping the measure
+
+            long long duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::string duration_str = std::to_string(duration);
+
+            mosquitto_broker_publish_copy(clientid,"analysis/time/function/time",duration_str.size(), duration_str.c_str(),0,false,properties);
 
             for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
                 cont = 0;
                 for(auto i: this->v_res){
                     mosquitto_broker_publish_copy(clientid,(o_t+"/"+to_string(cont)).c_str(),i.first,i.second,qos,retain,properties);
-                    cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
+                    //cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
                     cont++;
                 }
             }
