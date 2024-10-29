@@ -532,34 +532,41 @@ public:
 
     }
 
+    #define CLASSIC_BROKER //when defined, broker will ignore message processing and act as a normal broker. FOR BENCHMARKING PURPOSES ONLY
 
-    //TODO check on payloadlen type, is it okay to cast from uint_32t to int?
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
-        int cont;
-        if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
+        
+        auto now = std::chrono::high_resolution_clock::now();
+        auto broker_time_received = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        std::string duration_str = std::to_string(broker_time_received);
+        mosquitto_broker_publish_copy(clientid, "analysis/broker/timestamp_broker", duration_str.size(), duration_str.c_str(), 0, false, properties);
+        
+        #ifndef CLASSIC_BROKER
+            int cont;
+            if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
 
-            auto start = chrono::high_resolution_clock::now(); //starting processing time calculation for this payload
-            v_res = executeChain(payload,payload_len,topics_map[topic]);
-            auto end = std::chrono::high_resolution_clock::now(); //stopping the measure
+                auto start = chrono::high_resolution_clock::now(); //starting processing time calculation for this payload
+                v_res = executeChain(payload,payload_len,topics_map[topic]);
+                auto end = std::chrono::high_resolution_clock::now(); //stopping the measure
 
-            long long duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-            std::string duration_str = std::to_string(duration);
+                long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                std::string duration_str = std::to_string(duration);
 
-            mosquitto_broker_publish_copy(clientid,"analysis/time/function/time",duration_str.size(), duration_str.c_str(),0,false,properties);
+                mosquitto_broker_publish_copy(clientid, "analysis/time/function/time", duration_str.size(), duration_str.c_str(), 0, false, properties);
 
-            for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
-                cont = 0;
-                for(auto i: this->v_res){
-                    mosquitto_broker_publish_copy(clientid,(o_t+"/"+to_string(cont)).c_str(),i.first,i.second,qos,retain,properties);
-                    //cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
-                    cont++;
+                for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
+                    cont = 0;
+                    for(auto i: this->v_res){
+                        mosquitto_broker_publish_copy(clientid, (o_t+"/"+to_string(cont)).c_str(), i.first, i.second, qos, retain, properties);
+                        //cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
+                        cont++;
+                    }
                 }
+                v_res.clear();
+            } else{
+                cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
             }
-            v_res.clear();
-        } else{
-            cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
-        }
-
+        #endif
     }
 
 private:
