@@ -532,7 +532,7 @@ public:
 
     }
 
-    #define CLASSIC_BROKER //when defined, broker will ignore message processing and act as a normal broker. FOR BENCHMARKING PURPOSES ONLY
+    //#define CLASSIC_BROKER //when defined, broker will ignore message processing and act as a normal broker. FOR BENCHMARKING PURPOSES ONLY
 
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         
@@ -554,14 +554,22 @@ public:
 
                 mosquitto_broker_publish_copy(clientid, "analysis/time/function/time", duration_str.size(), duration_str.c_str(), 0, false, properties);
 
+                int processed_size = 0;
+                bool first_calc = true; //calc processed dimension only once
                 for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
                     cont = 0;
                     for(auto i: this->v_res){
+                        if(first_calc) processed_size += i.first;
                         mosquitto_broker_publish_copy(clientid, (o_t+"/"+to_string(cont)).c_str(), i.first, i.second, qos, retain, properties);
                         //cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
                         cont++;
                     }
+                    first_calc = false;
                 }
+
+                string processed_size_str = to_string(processed_size);
+                mosquitto_broker_publish_copy(clientid, "analysis/size/function/f_B", processed_size_str.size(), processed_size_str.c_str(), 0, retain, properties); //publish dimension after elaboration
+                
                 v_res.clear();
             } else{
                 cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
