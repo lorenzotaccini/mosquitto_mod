@@ -536,10 +536,11 @@ public:
 
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         
+        //TODO THIS DOESN'T HAVE TO PUBLISH WHEN USING EXTERNAL
         auto now = std::chrono::high_resolution_clock::now();
         auto broker_time_received = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-        std::string duration_str = std::to_string(broker_time_received);
-        mosquitto_broker_publish_copy(clientid, "analysis/broker/timestamp_broker", duration_str.size(), duration_str.c_str(), 0, false, properties);
+        std::string broker_time_received_str = std::to_string(broker_time_received);
+        mosquitto_broker_publish_copy(clientid, "analysis/broker/timestamp_broker", broker_time_received_str.size(), broker_time_received_str.c_str(), 0, false, properties);
         
         #ifndef CLASSIC_BROKER
             int cont;

@@ -83,6 +83,13 @@
 using namespace std;
 
 vector<pair<int, unsigned char*>> split_image(unsigned char* image_data, size_t data_size, int n) {
+
+    if(n==1){ //don't split
+        vector<pair<int, unsigned char*>> tiles;
+        tiles.push_back(pair<int, unsigned char*>(data_size,image_data));
+        return tiles;
+    }
+
     cout<<"data size is "<<data_size<<endl;
     // Step 1: Decode the PNG image from memory using LodePNG
     vector<unsigned char> decoded_pixels;
