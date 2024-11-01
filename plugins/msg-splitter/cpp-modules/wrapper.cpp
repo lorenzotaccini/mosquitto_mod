@@ -4,6 +4,7 @@
 #include <fstream>
 #include <regex>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <stdexcept>
 #include <sstream>
@@ -532,50 +533,61 @@ public:
 
     }
 
+    bool ignore_message_benchmark(const char* text) {
+        std::string str(text);
+        return (str.rfind("analysis", 0) == 0 || str.rfind("publisher/signal", 0) == 0); // rfind con pos 0 verifica se inizia con "analysis"
+    }
+
     //#define CLASSIC_BROKER //when defined, broker will ignore message processing and act as a normal broker. FOR BENCHMARKING PURPOSES ONLY
 
     void publish(const char *clientid, const char *topic, int payload_len, void* payload, int qos, bool retain, mosquitto_property *properties) {
         
-        //TODO THIS DOESN'T HAVE TO PUBLISH WHEN USING EXTERNAL
-        auto now = std::chrono::high_resolution_clock::now();
-        auto broker_time_received = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-        std::string broker_time_received_str = std::to_string(broker_time_received);
-        mosquitto_broker_publish_copy(clientid, "analysis/broker/timestamp_broker", broker_time_received_str.size(), broker_time_received_str.c_str(), 0, false, properties);
+        if(!ignore_message_benchmark(topic)){
+            auto now = std::chrono::high_resolution_clock::now();
+            auto broker_time_received = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            std::string broker_time_received_str = std::to_string(broker_time_received);
+            mosquitto_broker_publish_copy(clientid, "analysis/broker/timestamp_broker", broker_time_received_str.size(), broker_time_received_str.c_str(), 0, false, properties);
+            cout<<broker_time_received<<endl;
+            cout<<broker_time_received_str<<endl;
         
-        #ifndef CLASSIC_BROKER
-            int cont;
-            if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
+            #ifndef CLASSIC_BROKER
+                int cont;
+                if(topics_map.find(topic) != topics_map.end()){ //plugin has to manage this message
 
-                auto start = chrono::high_resolution_clock::now(); //starting processing time calculation for this payload
-                v_res = executeChain(payload,payload_len,topics_map[topic]);
-                auto end = std::chrono::high_resolution_clock::now(); //stopping the measure
+                    auto start = chrono::high_resolution_clock::now(); //starting processing time calculation for this payload
+                    v_res = executeChain(payload,payload_len,topics_map[topic]);
+                    auto end = std::chrono::high_resolution_clock::now(); //stopping the measure
 
-                long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-                std::string duration_str = std::to_string(duration);
+                    long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                    std::string duration_str = std::to_string(duration);
 
-                mosquitto_broker_publish_copy(clientid, "analysis/time/function/time", duration_str.size(), duration_str.c_str(), 0, false, properties);
+                    mosquitto_broker_publish_copy(clientid, "analysis/time/function/time", duration_str.size(), duration_str.c_str(), 0, false, properties);
 
-                int processed_size = 0;
-                bool first_calc = true; //calc processed dimension only once
-                for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
-                    cont = 0;
-                    for(auto i: this->v_res){
-                        if(first_calc) processed_size += i.first;
-                        mosquitto_broker_publish_copy(clientid, (o_t+"/"+to_string(cont)).c_str(), i.first, i.second, qos, retain, properties);
-                        //cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
-                        cont++;
+                    int processed_size = 0;
+                    bool first_calc = true; //calc processed dimension only once
+                    for(auto &o_t: topics_map[topic].output_topics){ //iterate on output topics
+                        cont = 0;
+                        for(auto i: this->v_res){
+                            if(first_calc) processed_size += i.first;
+                            mosquitto_broker_publish_copy(clientid, (o_t+"/"+to_string(cont)).c_str(), i.first, i.second, qos, retain, properties);
+                            //cout<<"modded and published on topic "<<(o_t+"/"+to_string(cont)).c_str()<<endl;
+                            cont++;
+                        }
+                        first_calc = false;
                     }
-                    first_calc = false;
-                }
 
-                string processed_size_str = to_string(processed_size);
-                mosquitto_broker_publish_copy(clientid, "analysis/size/function/f_B", processed_size_str.size(), processed_size_str.c_str(), 0, retain, properties); //publish dimension after elaboration
-                
-                v_res.clear();
-            } else{
-                cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
-            }
-        #endif
+                    string processed_size_str = to_string(processed_size);
+                    mosquitto_broker_publish_copy(clientid, "analysis/size/function/f_B", processed_size_str.size(), processed_size_str.c_str(), 0, retain, properties); //publish dimension after elaboration
+                    
+                    v_res.clear();
+                } else{
+                    cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
+                }
+            #endif
+        }
+        else{
+            cout<<"benchmarking-related message ignored"<<endl;
+        }
     }
 
 private:
