@@ -83,7 +83,7 @@
 using namespace std;
 
 vector<pair<int, unsigned char*>> split_image(unsigned char* image_data, size_t data_size, int n) {
-
+    cout<<"splitting image in "<<n<<" parts... ";
     if(n==1){ //don't split
         vector<pair<int, unsigned char*>> tiles;
         tiles.push_back(pair<int, unsigned char*>(data_size,image_data));
@@ -140,6 +140,6 @@ vector<pair<int, unsigned char*>> split_image(unsigned char* image_data, size_t 
             tiles.emplace_back(png_buffer.size(), buffer_copy);
         }
     }
-
+    cout<<"Done."<<endl;
     return tiles;
 }

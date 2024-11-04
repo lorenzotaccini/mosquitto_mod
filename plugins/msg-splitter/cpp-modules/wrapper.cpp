@@ -281,6 +281,72 @@ public:
     }
 };
 
+class CsvRowsHead : public DocProcessor{
+   vector<string> params;
+public:
+
+    CsvRowsHead(const vector<string>& params) : DocProcessor(params), params(params) {
+        if (!check_n_params(params.size())) {
+            throw invalid_argument("Number of given parameters is wrong for this function.\nPlease check your plugin's configuration file.");
+        }
+    }
+
+    bool check_n_params(int n_given) const override {
+        cout<<"csv row head has "<<n_given<<" params during init"<<endl;
+        return n_given == 1;
+    }
+
+    vector<pair<int, unsigned char*>> process(int payload_len, unsigned char* payload) override {
+        int percentage = stoi(params[0]);
+
+        // Converti il payload in una stringa e inizializza il documento CSV
+        stringstream csv_stream(string(reinterpret_cast<const char*>(payload), payload_len));
+        rapidcsv::Document doc(csv_stream, rapidcsv::LabelParams(0, -1));
+
+        // Ottieni nomi delle colonne e conteggio righe totale
+        vector<string> column_names = doc.GetColumnNames();
+        size_t total_rows = doc.GetRowCount();
+        
+        // Calcola il numero di righe da includere (percentuale del totale)
+        size_t rows_to_include = static_cast<size_t>((percentage / 100.0) * total_rows);
+
+        // Gestisci caso in cui le righe da includere sia inferiore a 1
+        if (rows_to_include < 1) rows_to_include = 1;
+
+        ostringstream part_stream;
+
+        // Aggiungi i nomi delle colonne all'output
+        for (size_t i = 0; i < column_names.size(); ++i) {
+            if (i > 0) {
+                part_stream << ",";
+            }
+            part_stream << column_names[i];
+        }
+        part_stream << "\n";
+
+        // Aggiungi le righe richieste in base alla percentuale
+        for (size_t row_index = 0; row_index < rows_to_include; ++row_index) {
+            for (size_t col_index = 0; col_index < column_names.size(); ++col_index) {
+                if (col_index > 0) {
+                    part_stream << ",";
+                }
+                part_stream << doc.GetCell<string>(column_names[col_index], row_index);
+            }
+            part_stream << "\n";
+        }
+
+        // Converti lo stream in un array di char per il payload
+        string part_data = part_stream.str();
+        size_t part_size = part_data.size();
+        unsigned char* part_payload = new unsigned char[part_size];
+        memcpy(part_payload, part_data.c_str(), part_size);
+
+        // Ritorna un vettore con una sola parte
+        return {{static_cast<int>(part_size), part_payload}};
+    }
+
+};
+
 class CsvColsSplit : public DocProcessor{
    vector<string> params;
 public:
@@ -409,6 +475,10 @@ DocProcessor* create_processor(pair<string,vector<string>> info) {
     }
     if(info.first == "splitrows"){
         auto *f = new CsvRowsSplit(info.second);
+        res_proc = f;
+    }
+    if(info.first == "headrows"){
+        auto *f = new CsvRowsHead(info.second);
         res_proc = f;
     }
     if(info.first == "splitcols"){
