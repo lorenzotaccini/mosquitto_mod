@@ -86,7 +86,11 @@ vector<pair<int, unsigned char*>> split_image(unsigned char* image_data, size_t 
     cout<<"splitting image in "<<n<<" parts... ";
     if(n==1){ //don't split
         vector<pair<int, unsigned char*>> tiles;
-        tiles.push_back(pair<int, unsigned char*>(data_size,image_data));
+        unsigned char* buffer_copy = new unsigned char[data_size];
+        memcpy(buffer_copy, image_data, data_size);
+
+        tiles.emplace_back(data_size,buffer_copy);
+        cout<<"Done."<<endl;
         return tiles;
     }
 
@@ -135,9 +139,11 @@ vector<pair<int, unsigned char*>> split_image(unsigned char* image_data, size_t 
             // Allocate and copy the encoded tile buffer to ensure separate storage
             unsigned char* buffer_copy = new unsigned char[png_buffer.size()];
             memcpy(buffer_copy, png_buffer.data(), png_buffer.size());
-
+            
             // Store tile with its size
             tiles.emplace_back(png_buffer.size(), buffer_copy);
+            //std::vector<unsigned char>().swap (png_buffer);
+            //png_buffer.clear();
         }
     }
     cout<<"Done."<<endl;

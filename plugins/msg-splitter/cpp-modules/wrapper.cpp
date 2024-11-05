@@ -499,7 +499,7 @@ struct topics_info {
     vector<DocProcessor*> functions;
 };
 
-vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, topics_info &t_i) {
+vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, topics_info &t_i) { //MEMORY LEAK SOMEWHERE
     
     vector<pair<int, unsigned char*>> datalist;
     vector<pair<int, unsigned char*>> proc_result;
@@ -509,15 +509,19 @@ vector<pair<int,unsigned char*>> executeChain(void* payload, int payload_len, to
 
     for(auto p: t_i.functions){
         for(auto d: datalist){
+            //single_res.clear();
+            std::vector<pair<int, unsigned char*>>().swap (single_res);
             single_res = p->process(d.first, d.second);
             for(auto s: single_res){
                 proc_result.push_back(s);
             }
         }
-
+        //datalist.clear();
+        std::vector<pair<int, unsigned char*>>().swap (datalist);
         datalist = proc_result; //after last iteration, datalist will contain the result
-        proc_result.clear();
+        std::vector<pair<int, unsigned char*>>().swap (proc_result);
     }
+    //proc_result.clear();
     
     return datalist;
 
@@ -648,8 +652,11 @@ public:
 
                     string processed_size_str = to_string(processed_size);
                     mosquitto_broker_publish_copy(clientid, "analysis/size/function/f_B", processed_size_str.size(), processed_size_str.c_str(), 0, retain, properties); //publish dimension after elaboration
-                    
-                    v_res.clear();
+                    //std::vector<pair<int, unsigned char*>>().swap (v_res);
+                    //v_res.clear();
+                    for (auto i: this->v_res){
+                        delete [] i.second;
+                    }
                 } else{
                     cout<<"messages on topic "<<topic<<" are not managed by the plugin and therefore published normally"<<endl;
                 }

@@ -32,7 +32,7 @@ libmodules.a: $(cpp-modules:.cpp=.o)
 	ar rcs $@ $^
 
 ${PLUGIN_NAME}.so : ${PLUGIN_NAME}.c libmodules.a 
-	$(CROSS_COMPILE)$(CXX) $< $(PLUGIN_CPPFLAGS) $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS) -fPIC -shared libmodules.a -L/usr/lib/x86_64-linux-gnu -lyaml-cpp -lstdc++ -o $@
+	$(CROSS_COMPILE)$(CXX) $< $(PLUGIN_CPPFLAGS) $(PLUGIN_CFLAGS) $(PLUGIN_LDFLAGS) -g -fPIC -shared libmodules.a -L/usr/lib/x86_64-linux-gnu -lyaml-cpp -lstdc++ -o $@
 
 reallyclean : clean
 clean:
